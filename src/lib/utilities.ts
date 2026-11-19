@@ -41,7 +41,7 @@ export function exportCurl(input: { method: string; url: string; headers: Record
 }
 
 export function safePublicCollection(value: unknown): unknown {
-  const blocked = /^(authorization|proxy-authorization|cookie|cookies|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|x-auth-token|auth|environment|environments|variables|history|request_history|owner_id|collection_id|user_id|email|username|avatar_url|profile|account)$/i;
+  const blocked = /^(authorization|proxy-authorization|cookie|cookies|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|x-auth-token|auth|environment|environments|variables|history|request_history|owner_id|collection_id|user_id|email|username|full_name|display_name|phone|avatar|avatar_url|user_metadata|profile_id|author_id|created_by|profile|account)$/i;
   const visit = (input: unknown): unknown => {
     if (Array.isArray(input)) {
       return input
@@ -79,7 +79,7 @@ export function safePublicCollection(value: unknown): unknown {
   return visit(value);
 }
 
-const sensitiveQueryKey = /^(key|api[-_]?key|apikey|token|access_token|refresh_token|password|secret|client_secret|authorization|auth)$/i;
+const sensitiveQueryKey = /^(key|api[-_]?key|apikey|x[-_]?api[-_]?key|token|access[-_]?token|refresh[-_]?token|x[-_]?auth[-_]?token|password|secret|client[-_]?secret|authorization|auth|session)$/i;
 
 export function redactUrl(source: string): string {
   try {
