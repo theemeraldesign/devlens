@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import type { User } from "@supabase/supabase-js";
 import { X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 type Props = { onClose: () => void; onAuthenticated: (user: User) => void };
 
-export default function AuthModal({ onClose, onAuthenticated }: Props) {
+export default function AuthModal({
+  const dialogRef = useModalAccessibility(onClose); onClose, onAuthenticated }: Props) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +44,7 @@ export default function AuthModal({ onClose, onAuthenticated }: Props) {
   }
 
   return <div className="modal-backdrop" onClick={onClose}>
-    <section className="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={event => event.stopPropagation()}>
+    <section ref={dialogRef} className="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={event => event.stopPropagation()}>
       <div className="modal-title"><b id="auth-title">{mode === "signin" ? "Welcome back" : "Create your DevLens account"}</b><button onClick={onClose} aria-label="Close"><X size={16}/></button></div>
       <p>{mode === "signin" ? "Sign in to sync collections and environments across devices." : "Your collections stay private until you choose to share them."}</p>
       <label>Email address</label>
