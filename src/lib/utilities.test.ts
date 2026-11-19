@@ -40,3 +40,15 @@ describe("sensitive request data handling", () => {
     ])).toEqual([{ key: "Accept", value: "application/json", enabled: true }]);
   });
 });
+
+describe("public snapshot data minimization", () => {
+  it("omits environments, history and personal account fields", () => {
+    expect(safePublicCollection({
+      title: "Example",
+      environments: [{ name: "production", variables: { API_URL: "https://private.example" } }],
+      request_history: [{ url: "https://private.example" }],
+      owner_id: "internal-user-id",
+      email: "private@example.com"
+    })).toEqual({ title: "Example" });
+  });
+});
