@@ -204,7 +204,7 @@ export function importCurl(command: string): ImportedCurlRequest {
 export function prettyXml(source: string): string {
   const input = source.trim();
   if (!input) return "";
-  const tokens = input.match(/<!--[\\s\\S]*?-->|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>|<\\?[\\s\\S]*?\\?>|<!DOCTYPE[^>]*>|<[^>]+>|[^<]+/gi);
+  const tokens = input.match(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>|<!DOCTYPE[^>]*>|<[^>]+>|[^<]+/gi);
   if (!tokens) throw new Error("The XML response could not be formatted.");
   const lines: string[] = [];
   const stack: string[] = [];
@@ -212,23 +212,23 @@ export function prettyXml(source: string): string {
   for (const token of tokens) {
     const value = token.trim();
     if (!value) continue;
-    if (/^<\\//.test(value)) {
-      const name = value.match(/^<\\/\\s*([^\\s>]+)/)?.[1];
+    if (/^<\//.test(value)) {
+      const name = value.match(/^<\/\s*([^\s>]+)/)?.[1];
       if (!name || stack[stack.length - 1] !== name) throw new Error("The XML response contains mismatched closing tags.");
       stack.pop();
       lines.push(indent() + value);
-    } else if (/^<[^!?][^>]*\\/>$/.test(value)) {
+    } else if (/^<[^!?][^>]*\/>$/.test(value)) {
       lines.push(indent() + value);
     } else if (/^<[^!?][^>]*>$/.test(value)) {
       lines.push(indent() + value);
-      const name = value.match(/^<\\s*([^\\s/>]+)/)?.[1];
+      const name = value.match(/^<\s*([^\s/>]+)/)?.[1];
       if (name) stack.push(name);
-    } else if (/^<\\?|^<!/.test(value)) {
+    } else if (/^<\?|^<!/.test(value)) {
       lines.push(indent() + value);
     } else {
       lines.push(indent() + value);
     }
   }
   if (stack.length) throw new Error("The XML response contains unclosed tags.");
-  return lines.join("\\n");
+  return lines.join("\n");
 }
