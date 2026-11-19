@@ -64,7 +64,6 @@ export default function App() {
   const [history, setHistory] = useState<RequestHistoryItem[]>(() => readRequestHistory());
   const [historyFilter, setHistoryFilter] = useState("");
   const [publishedSlugs, setPublishedSlugs] = useState<Record<string, string>>({});
-  const [showTools, setShowTools] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"collections" | "environments" | "history" | "utilities" | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
