@@ -51,7 +51,7 @@ DevLens does not store API credentials in public collection snapshots. Request h
 
 ## Local development
 
-Requirements: Node.js 22.12+.
+Requirements: Node.js 22.23.4 or later in the 22.x line.
 
 ```bash
 npm install
