@@ -98,6 +98,13 @@ Deno.serve(async (request: Request) => {
   if (!payload.collectionId || !/^[0-9a-f-]{36}$/i.test(payload.collectionId)) return Response.json({ error: "A valid collection ID is required." }, { status: 400, headers: corsHeaders });
 
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (payload.action === "status") {
+    const { data: existing, error } = await admin.from("public_collection_snapshots")
+      .select("slug").eq("collection_id", payload.collectionId).eq("owner_id", authData.user.id).maybeSingle();
+    if (error) return Response.json({ error: "Unable to check publication status." }, { status: 500, headers: corsHeaders });
+    return Response.json({ published: Boolean(existing), slug: existing?.slug ?? null }, { headers: corsHeaders });
+  }
+
   if (payload.action === "unpublish") {
     const { error } = await admin.from("public_collection_snapshots").delete().eq("collection_id", payload.collectionId).eq("owner_id", authData.user.id);
     if (error) return Response.json({ error: "Unable to unpublish this collection." }, { status: 500, headers: corsHeaders });
