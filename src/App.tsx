@@ -67,7 +67,7 @@ export default function App() {
   const [publishedSlugs, setPublishedSlugs] = useState<Record<string, string>>({});
   const [mobilePanel, setMobilePanel] = useState<"collections" | "environments" | "history" | "utilities" | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth] = useState(() => window.location.search.includes("password-reset=1"));
   const [activeUtility, setActiveUtility] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
@@ -634,14 +634,14 @@ export default function App() {
   }
 
   const shareSlug = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{8,80})$/)?.[1] ?? null;
-  if (shareSlug) return <SharedCollectionPage slug={shareSlug} onImport={(name, rows) => { if (!accountId) { setShowAuth(true); return; } void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>); }} />;
+  if (shareSlug) return <><SharedCollectionPage slug={shareSlug} onImport={(name, rows) => { if (!accountId) { setShowAuth(true); return; } void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>); }} />{showAuth && <AuthModal initialMode="signin" onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); }} />}</>;
   if (!authReady) return <div className="auth-loading" role="status">Preparing your workspace...</div>;
   if (!accountId) return <><LandingPage onGetStarted={() => setShowAuth(true)} onSignIn={() => setShowAuth(true)}/>{showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); }} />}</>;
 
   return <div className={dark ? "app dark app-enter" : "app light app-enter"}>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Activity size={18} strokeWidth={2.4}/></div><span>dev<span className="brand-accent">lens</span></span><span className="beta">BETA</span></div>
-      <div className="workspace-switch"><div className="workspace-avatar">{collectionName.slice(0,1).toUpperCase() || "D"}</div><span><b>{collectionName}</b><small>{accountEmail ? "Synced account workspace" : "Local guest workspace"}</small></span></div>
+      <div className="workspace-switch"><div className="workspace-avatar">{collectionName.slice(0,1).toUpperCase() || "D"}</div><span><b>{collectionName}</b><small>{"Synced account workspace"}</small></span></div>
       <div className="side-label">WORKSPACE</div>
       <nav className="side-nav" aria-label="Primary workspace navigation">
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={currentPage===name.toLowerCase() ? "active" : ""} onClick={() => navigateTo(name.toLowerCase() as AppPage)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
@@ -657,7 +657,7 @@ export default function App() {
       </nav>
       <div className="sidebar-bottom">
         <div className="secure-note"><ShieldCheck size={16}/><span><b>Private by design</b><small>Secrets stay in your workspace.</small></span></div>
-        <button className="profile-row" onClick={() => accountId ? signOut() : setShowAuth(true)}><div className="profile-avatar">{accountEmail ? accountEmail.slice(0,1).toUpperCase() : "G"}</div><span><b>{accountEmail ?? "Guest workspace"}</b><small>{accountEmail ? "Click to sign out" : "Local session · Sign in"}</small></span><MoreHorizontal size={17}/></button>
+        <button className="profile-row" onClick={() => accountId ? signOut() : setShowAuth(true)}><div className="profile-avatar">{accountEmail ? accountEmail.slice(0,1).toUpperCase() : "A"}</div><span><b>{accountEmail ?? "Your account"}</b><small>{"Click to sign out"}</small></span><MoreHorizontal size={17}/></button>
       </div>
     </aside>
 
@@ -669,7 +669,7 @@ export default function App() {
           <button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button>
           <div className="menu-anchor"><button className={menuOpen?"menu-trigger open":"menu-trigger"} aria-label="Open main menu" aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}><Menu size={19}/></button>
           {menuOpen && <><button className="menu-scrim" aria-label="Close menu" onClick={()=>setMenuOpen(false)}></button><div className="account-menu">
-            <div className="menu-account"><span className="menu-avatar">{accountEmail?accountEmail.slice(0,1).toUpperCase():"G"}</span><span><b>{accountEmail??"Guest workspace"}</b><small>{accountEmail?"Signed in":"Local device session"}</small></span></div>
+            <div className="menu-account"><span className="menu-avatar">{accountEmail?accountEmail.slice(0,1).toUpperCase():"A"}</span><span><b>{accountEmail??"Your account"}</b><small>{"Signed in"}</small></span></div>
             <button onClick={()=>{setMenuOpen(false);accountId?signOut():setShowAuth(true);}}><UserRound size={16}/>{accountId?"Sign out":"Sign in / Create account"}<ChevronRight size={14}/></button>
             <button onClick={()=>{setMenuOpen(false);setShowNew(true);}}><Plus size={16}/>New collection<ChevronRight size={14}/></button>
             <div className="menu-divider"/>
@@ -681,8 +681,8 @@ export default function App() {
         </div>
       </header>
 
-      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/>{currentPage==="workspace"?"API WORKSPACE":"DEVLENS WORKSPACE"}<span className="eyebrow-line"/></div><h1>{pageTitles[currentPage]}<span>.</span></h1><p>{currentPage==="workspace"?"Build, send and inspect HTTP requests with clarity.":currentPage==="collections"?"Organise reusable requests into focused API workspaces.":currentPage==="environments"?"Manage base URLs, tokens and variables across your requests.":currentPage==="history"?"Review, search and replay your recent API activity.":"A focused toolkit for everyday API development."}</p></div><div className="heading-meta"><span className="live-dot"/> {accountEmail ? "Account" : "Guest mode"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"}</div></section>
-      {showImportPrompt && <div className="import-banner"><div><b>Guest workspace data found</b><span>Import {collections.filter(item => !item.cloudOwnerId).length} collection(s) and {environments.filter(item => !item.cloudOwnerId).length} environment(s) into your account. Local copies will stay on this device.</span></div><button onClick={importGuestData}>Import guest data</button><button className="dismiss-import" onClick={() => setShowImportPrompt(false)} aria-label="Dismiss"><X size={14}/></button></div>}
+      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/>{currentPage==="workspace"?"API WORKSPACE":"DEVLENS WORKSPACE"}<span className="eyebrow-line"/></div><h1>{pageTitles[currentPage]}<span>.</span></h1><p>{currentPage==="workspace"?"Build, send and inspect HTTP requests with clarity.":currentPage==="collections"?"Organise reusable requests into focused API workspaces.":currentPage==="environments"?"Manage base URLs, tokens and variables across your requests.":currentPage==="history"?"Review, search and replay your recent API activity.":"A focused toolkit for everyday API development."}</p></div><div className="heading-meta"><span className="live-dot"/> {"Account"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"}</div></section>
+      {showImportPrompt && <div className="import-banner"><div><b>Local workspace data found</b><span>Import {collections.filter(item => !item.cloudOwnerId).length} collection(s) and {environments.filter(item => !item.cloudOwnerId).length} environment(s) into your account. Local copies will stay on this device.</span></div><button onClick={importGuestData}>Import local data</button><button className="dismiss-import" onClick={() => setShowImportPrompt(false)} aria-label="Dismiss"><X size={14}/></button></div>}
       {accountNotice && <div className="import-banner"><span>{accountNotice}</span><button className="dismiss-import" onClick={() => setAccountNotice("")} aria-label="Dismiss"><X size={14}/></button></div>}
 
       {currentPage === "workspace" && <>      <div className="workspace-grid">
