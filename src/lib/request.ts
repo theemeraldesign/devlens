@@ -75,7 +75,7 @@ async function sendBrowserRequest(request: ApiRequest, signal?: AbortSignal): Pr
   }
   if (request.bodyType === "formdata") headers.delete("content-type");
   const body = buildBrowserBody(request);
-  if (body && new TextEncoder().encode(typeof body === "string" ? body : "").byteLength > MAX_BROWSER_REQUEST_BYTES) {
+  if (request.body && new TextEncoder().encode(request.body).byteLength > MAX_BROWSER_REQUEST_BYTES) {
     throw new Error("The request body exceeds DevLens's 1 MB browser-mode limit.");
   }
   try {
