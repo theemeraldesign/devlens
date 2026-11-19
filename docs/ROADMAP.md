@@ -32,7 +32,7 @@
 - [x] Base64 and URL encode/decode.
 - [x] UUID generator.
 - [x] cURL import/export with shell-input safeguards.
-- [ ] Dedicated XML formatter and validator utility.
+- [x] XML formatter utility with mixed-content preservation and malformed-tag checks.
 
 ## Accounts, sync, and sharing
 - [x] Supabase email/password authentication.
