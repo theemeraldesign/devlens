@@ -19,7 +19,7 @@ test("direct workspace routes return signed-out visitors to the landing page", a
 
 test("account entry opens the sign-in and registration dialog", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Create account" }).click();
+  await page.locator(".landing-header-cta").click();
   await expect(page.getByRole("dialog")).toContainText("Create your DevLens account");
   await expect(page.getByLabel("Email address")).toBeVisible();
   await expect(page.getByLabel("Password")).toBeVisible();
@@ -29,7 +29,7 @@ test("account entry opens the sign-in and registration dialog", async ({ page })
 
 test("password recovery is available from sign in", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.locator(".landing-signin").click();
   await page.getByRole("button", { name: "Forgot your password?" }).click();
   await expect(page.getByRole("dialog")).toContainText("Reset your password");
   await expect(page.getByRole("button", { name: "Send reset link" })).toBeVisible();
