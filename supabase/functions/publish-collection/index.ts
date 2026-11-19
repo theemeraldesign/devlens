@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-const blockedHeader = /^(authorization|proxy-authorization|cookie|cookies|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|x-auth-token|token|auth|authentication|session)$/i;
+const blockedHeader = /^(authorization|proxy-authorization|cookie|cookies|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|private[-_]?key|x-auth-token|token|jwt|signature|sig|auth|authentication|session)$/i;
 const secretQuery = /^(key|api[-_]?key|apikey|x[-_]?api[-_]?key|token|access[-_]?token|refresh[-_]?token|x[-_]?auth[-_]?token|password|secret|client[-_]?secret|authorization|auth|session|jwt|signature|sig)$/i;
 
 function publicUrl(source: string): string {
@@ -36,7 +36,7 @@ function publicBody(source: unknown): string {
 }
 
 function sanitizeJson(value: unknown): unknown {
-  const blockedKey = /authorization|auth|session|cookie|token|secret|password|credential|api[-_]?key|apikey|environment|history|owner_id|collection_id|user_id|email|username|profile|account/i;
+  const blockedKey = /authorization|auth|session|cookie|token|jwt|signature|private[-_]?key|secret|password|credential|api[-_]?key|apikey|environment|history|owner_id|collection_id|user_id|email|username|profile|account/i;
   if (Array.isArray(value)) return value.filter((item) => {
     if (!item || typeof item !== "object") return true;
     const row = item as Record<string, unknown>;
