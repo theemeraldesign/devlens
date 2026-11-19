@@ -10,7 +10,7 @@
 - [x] Add initial RLS schema and restricted public snapshot view.
 - [x] Add CI, Vitest and Playwright smoke-test definitions.
 - [ ] Verify CI typecheck, tests and production build.
-- [ ] Complete SSRF-safe outbound egress design.
+- [ ] Complete SSRF-safe outbound egress design. DNS validation is present, but DNS-pinned egress is still required before public deployment.
 
 ## Request workspace
 - [x] Seven HTTP methods.
@@ -44,8 +44,8 @@
 - [x] Collection rename, delete and duplicate.
 - [ ] Full sync conflict handling.
 - [x] Private environment CRUD and cross-device sync.
-- [ ] Public collection publishing with server-side sanitization.
-- [ ] Public collection import into a workspace.
+- [x] Public collection publishing with server-side sanitization.
+- [x] Public collection import into a workspace.
 
 ## Later releases
 - OpenAPI import.
