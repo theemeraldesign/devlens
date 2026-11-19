@@ -35,6 +35,12 @@ export default function App() {
   const [accountNotice, setAccountNotice] = useState("");
   const [params, setParams] = useState([{ id: uid(), key: "", value: "", enabled: true }]);
   const [authType, setAuthType] = useState("No authentication");
+  const [authToken, setAuthToken] = useState("");
+  const [basicUsername, setBasicUsername] = useState("");
+  const [basicPassword, setBasicPassword] = useState("");
+  const [apiKeyName, setApiKeyName] = useState("x-api-key");
+  const [apiKeyValue, setApiKeyValue] = useState("");
+  const [apiKeyLocation, setApiKeyLocation] = useState<"Header" | "Query">("Header");
 
   useEffect(() => {
     if (!supabase) return;
@@ -100,7 +106,14 @@ export default function App() {
     try {
       const finalUrl = new URL(request.url);
       params.filter(p => p.enabled && p.key.trim()).forEach(p => finalUrl.searchParams.set(p.key, p.value));
-      const result = await sendRequest({ ...request, url: finalUrl.toString() });
+      const outgoingHeaders = [...request.headers];
+      if (authType === "Bearer token" && authToken) outgoingHeaders.push({ id: uid(), key: "Authorization", value: "Bearer " + authToken, enabled: true });
+      if (authType === "Basic auth" && basicUsername) outgoingHeaders.push({ id: uid(), key: "Authorization", value: "Basic " + btoa(basicUsername + ":" + basicPassword), enabled: true });
+      if (authType === "API key" && apiKeyName && apiKeyValue) {
+        if (apiKeyLocation === "Header") outgoingHeaders.push({ id: uid(), key: apiKeyName, value: apiKeyValue, enabled: true });
+        else finalUrl.searchParams.set(apiKeyName, apiKeyValue);
+      }
+      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString() });
       setResponse(result);
       setHistory(items => [request.url, ...items.filter(x => x !== request.url)].slice(0, 12));
     } catch (e) { setError(e instanceof Error ? e.message : "Request failed."); }
@@ -144,7 +157,7 @@ export default function App() {
           {tab==="headers" && <><div className="panel-caption"><span>HEADER</span><span>VALUE</span><span> </span></div>{request.headers.map(h=><div className="key-value-row" key={h.id}><input type="checkbox" checked={h.enabled} onChange={e=>updateHeader(h.id,{enabled:e.target.checked})}/><input value={h.key} placeholder="Header name" onChange={e=>updateHeader(h.id,{key:e.target.value})}/><input value={h.value} placeholder="Value" onChange={e=>updateHeader(h.id,{value:e.target.value})}/><button className="row-icon" onClick={()=>updateRequest({headers:request.headers.filter(x=>x.id!==h.id)})}><X size={14}/></button></div>)}<button className="add-row" onClick={()=>updateRequest({headers:[...request.headers,{id:uid(),key:"",value:"",enabled:true}]})}><Plus size={14}/> Add header</button></>}
           {tab==="params" && <><div className="panel-caption"><span>PARAMETER</span><span>VALUE</span><span> </span></div>{params.map(p=><div className="key-value-row" key={p.id}><input type="checkbox" checked={p.enabled} onChange={e=>setParams(items=>items.map(x=>x.id===p.id?{...x,enabled:e.target.checked}:x))}/><input value={p.key} placeholder="Parameter" onChange={e=>setParams(items=>items.map(x=>x.id===p.id?{...x,key:e.target.value}:x))}/><input value={p.value} placeholder="Value" onChange={e=>setParams(items=>items.map(x=>x.id===p.id?{...x,value:e.target.value}:x))}/><button className="row-icon" onClick={()=>setParams(items=>items.filter(x=>x.id!==p.id))}><X size={14}/></button></div>)}<button className="add-row" onClick={()=>setParams(items=>[...items,{id:uid(),key:"",value:"",enabled:true}])}><Plus size={14}/> Add parameter</button></>}
           {tab==="body" && <div className="body-editor"><div className="body-toolbar"><span>JSON</span><span>application/json <ChevronDown size={13}/></span></div><textarea value={request.body} onChange={e=>updateRequest({body:e.target.value})} placeholder={'{\n  "name": "DevLens",\n  "status": "building"\n}'} spellCheck={false}/></div>}
-          {tab==="auth" && <div className="auth-panel"><label>AUTHENTICATION TYPE</label><select value={authType} onChange={e=>setAuthType(e.target.value)}><option>No authentication</option><option>Bearer token</option><option>Basic auth</option><option>API key</option></select><p>Credentials are sent only with this request. They are never included in public collection exports.</p></div>}
+          {tab==="auth" && <div className="auth-panel"><label>AUTHENTICATION TYPE</label><select value={authType} onChange={e=>setAuthType(e.target.value)}><option>No authentication</option><option>Bearer token</option><option>Basic auth</option><option>API key</option></select>{authType==="Bearer token" && <input className="auth-value" type="password" value={authToken} onChange={e=>setAuthToken(e.target.value)} placeholder="Bearer token"/>}{authType==="Basic auth" && <><input className="auth-value" value={basicUsername} onChange={e=>setBasicUsername(e.target.value)} placeholder="Username"/><input className="auth-value" type="password" value={basicPassword} onChange={e=>setBasicPassword(e.target.value)} placeholder="Password"/></>}{authType==="API key" && <><input className="auth-value" value={apiKeyName} onChange={e=>setApiKeyName(e.target.value)} placeholder="Key name"/><input className="auth-value" type="password" value={apiKeyValue} onChange={e=>setApiKeyValue(e.target.value)} placeholder="API key value"/><select className="auth-location" value={apiKeyLocation} onChange={e=>setApiKeyLocation(e.target.value as "Header" | "Query")}><option>Header</option><option>Query</option></select></>}<p>Credentials are sent with this request only. They are not saved with guest collections or included in public collection exports.</p></div>}
         </div>
       </section>
 
