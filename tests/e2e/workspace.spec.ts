@@ -91,3 +91,19 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   await page.getByRole("button", { name: "Delete Renamed API copy" }).click();
   await expect(page.locator(".collection-list")).not.toContainText("Renamed API copy");
 });
+
+test("edits multipart form-data fields in the request builder", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Body" }).click();
+  await page.locator("#body-type").selectOption("formdata");
+  await page.getByRole("button", { name: "Add field" }).click();
+  await page.getByLabel("Form data key 1").fill("name");
+  await page.getByLabel("Form data value 1").fill("DevLens");
+  await page.getByRole("button", { name: "Add field" }).click();
+  await page.getByLabel("Form data key 2").fill("status");
+  await page.getByLabel("Form data value 2").fill("building");
+  await expect(page.getByLabel("Form data value 1")).toHaveValue("DevLens");
+  await expect(page.getByLabel("Form data value 2")).toHaveValue("building");
+  await page.getByRole("button", { name: "Remove form data field 1" }).click();
+  await expect(page.getByLabel("Form data key 1")).toHaveValue("status");
+});
