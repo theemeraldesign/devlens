@@ -112,7 +112,8 @@ Deno.serve(async (request: Request) => {
   const sourceRequests = Array.isArray(content.requests) ? content.requests : [];
   if (sourceRequests.length > 500) return Response.json({ error: "Collections are limited to 500 requests for publishing." }, { status: 400, headers: corsHeaders });
   const requests = sourceRequests.map(sanitizeRequest).filter((item): item is Record<string, unknown> => item !== null);
-  const slug = crypto.randomUUID().replace(/-/g, "");
+  const { data: existing } = await admin.from("public_collection_snapshots").select("slug").eq("collection_id", collection.id).eq("owner_id", authData.user.id).maybeSingle();
+  const slug = existing?.slug || crypto.randomUUID().replace(/-/g, "");
   const snapshot = { format: "devlens-public-collection", version: 1, requests };
   const { data: published, error: publishError } = await admin.from("public_collection_snapshots").upsert({
     collection_id: collection.id,
