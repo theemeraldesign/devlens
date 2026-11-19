@@ -51,7 +51,7 @@ The password recovery flow depends on the redirect URL being on the allow list. 
 
 ## Production email delivery
 
-Supabase's default SMTP service is for development only. It sends only to authorised team addresses and has a low sending limit. Configure a verified SMTP provider before broad public registration or password recovery. Use a verified sender domain and configure SPF, DKIM, and DMARC. Keep email confirmation enabled.
+Supabase's default SMTP service is for development only. It sends only to authorised team addresses and has a low sending limit. Production SMTP remains pending Brevo sender-domain verification and authenticated SMTP credentials. After verification, configure Supabase custom SMTP, confirm SPF/DKIM/DMARC, then test account confirmation and password recovery. Keep email confirmation enabled. Do not treat production email delivery as complete before those tests pass.
 
 ## Deploy and verify
 
