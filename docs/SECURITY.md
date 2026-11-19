@@ -1,14 +1,24 @@
-# Security model and release gates
+# Security model
 
 ## Data classification
 
-| Data | Guest mode | Signed-in mode | Public |
-| --- | --- | --- | --- |
-| Request definitions | Browser storage | Owner-only collection rows | Sanitized snapshot only |
-| Environment values | Not cloud-synced | Owner-only | Never |
-| Request history | Browser storage | Owner-only table, URL query secrets redacted | Never |
-| Auth credentials | Entered per request | Entered per request | Never |
-| Account identity | Not required | Supabase Auth | Never included in snapshots |
+| Data | Signed-in mode | Public |
+| --- | --- | --- |
+| Request definitions | Owner-only collection rows | Sanitised snapshot only |
+| Environment values | Owner-only | Never |
+| Request history | Owner-only, URL query secrets redacted | Never |
+| Auth credentials | Entered per request | Never |
+| Account identity | Supabase Auth | Never included in snapshots |
+
+## Request path
+
+1. The browser sends an API request and the user's Supabase access token to the Cloudflare Worker.
+2. The Worker validates the token through Supabase Auth. It rejects unauthenticated requests.
+3. Cloudflare rate limits requests by the platform-provided client IP and verified Supabase user ID.
+4. The Worker validates the URL and request envelope, then signs the envelope with HMAC-SHA256 and a short-lived timestamp.
+5. The Vercel gateway verifies the HMAC signature and timestamp before accepting the request.
+6. The gateway uses the pinned `guarded-fetch` 0.3.0 dependency. Its default dispatcher performs DNS preflight checks and connect-time IP pinning. This prevents a DNS answer from changing to a private address between validation and connection.
+7. Redirect following is disabled. The Worker rejects 3xx upstream responses and asks the user to request the final URL directly.
 
 ## Current protections
 
@@ -16,28 +26,27 @@
 - RLS is enabled on every DevLens application table.
 - Private collections, environments and history have owner-scoped policies.
 - Anonymous database access is restricted to published snapshot fields.
-- Public snapshots use a restricted invoker view. Owner and collection IDs are not exposed to anonymous clients. Browser clients cannot write public snapshots; publishing must go through a trusted service that sanitizes content server-side.
-- The Worker rejects non-HTTP(S) URLs, private IP literals, private DNS answers, credentials embedded in URLs and upstream redirects.
-- The Worker streams and caps request and response bodies, caps header count and size, and applies a timeout.
-- A Cloudflare Rate Limiting binding applies an approximate per-location limit of 60 proxy calls per minute per source IP. The key is derived from Cloudflare's platform-provided client IP, not a client-controlled identifier. This is a burst-control layer, not a strict global quota.
+- Public snapshots use a restricted invoker view. Owner and collection IDs are not exposed to anonymous clients. Browser clients cannot write public snapshots; publishing goes through an authenticated Edge Function that sanitises content server-side.
+- The Worker accepts only HTTP(S) URLs and rejects private IP literals, credentials embedded in URLs, and local hostnames.
+- The gateway's guarded transport rejects private, loopback, link-local, CGNAT, metadata, reserved, and unsafe IPv6-embedded destinations. It validates every DNS answer and pins the validated address at connection time.
+- The gateway strips unsafe request headers, including Host, Cookie, forwarding, proxy, and cloud-metadata headers.
+- The gateway blocks redirects and strips response cookies.
+- The Worker applies approximate limits of 60 requests per minute per source IP and per verified user.
+- Worker request bodies are capped at 1 MB. Gateway request bodies are capped at 2 MB. Upstream response bodies are capped at 5 MB.
+- Requests time out after 20 seconds.
 - Public snapshots redact credential-like URL query values, remove sensitive JSON fields from request bodies, and omit non-JSON request bodies.
 - Request history stores method, redacted URL, status and duration only. It does not store request or response bodies or credential headers.
 - JWT inspection is decode-only. It does not claim to verify signatures.
 
-## Egress investigation
+## Runtime hardening
 
-Cloudflare documents Workers VPC with a `cf1:network` binding as a way to route Worker-originated public Internet traffic through Cloudflare Gateway. Gateway DNS, HTTP and Network policies then apply to the request.
+The Vercel gateway runs on the patched Node.js 22 release line. Brotli response decoding is disabled as defence in depth against CVE-2026-111497. Keep the runtime on a patched supported Node.js release and update dependencies through reviewed changes.
 
-Workers VPC is currently in beta and documented as free on Workers plans. Its VPC Network configuration requires at least one active Cloudflare Tunnel, Cloudflare Mesh node or Cloudflare WAN on-ramp. The Projects Account currently has no Cloudflare Tunnels and no Gateway rules configured. The Gateway egress path is therefore not provisioned or tested.
+## Remaining operational work
 
-The VPC option is promising, but it is not a completed security control until an always-on network on-ramp exists, explicit Gateway Network policies block private and special-purpose IPv4/IPv6 destinations, and tests confirm those policies apply to Worker egress.
+- Configure and verify a production SMTP provider before broad public registration and password recovery. Keep email confirmation enabled.
+- Add production alerting and a regular review of gateway abuse and rate-limit metrics.
+- Expand automated integration tests with controlled DNS fixtures, rebinding simulations, and live gateway probes. Existing unit tests cover signature validation, request-envelope validation, and representative private/public IP ranges.
+- Review the gateway dependency and its security advisories during routine maintenance.
 
-## Production release blockers
-
-1. Replace the current DNS check plus independent fetch resolution with a DNS-pinned egress gateway or equivalent control that prevents DNS rebinding and private-address routing at connection time. A Cloudflare Workers VPC + Gateway design is under evaluation; it is not enabled yet.
-2. Extend automated tests for URL parsing, IPv4/IPv6 special ranges, DNS answers and rebinding, redirect handling, body limits, timeout behavior and rate-limit responses. The current suite covers the IP classifier and multipart body construction.
-3. Validate request authentication and public collection sanitization on the server, not only in browser code.
-4. Add abuse monitoring, retention limits and a clear acceptable-use policy for the public request proxy.
-5. Review Cloudflare account-level egress controls and confirm the proxy cannot reach private, link-local, metadata or internal services.
-
-Do not expose the current proxy to unrestricted public production traffic until these gates are closed.
+This is a layered application-level egress control. It is not a promise that arbitrary internet destinations are harmless. Users should only send requests to services they are authorised to access.
