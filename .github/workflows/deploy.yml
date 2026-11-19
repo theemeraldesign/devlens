@@ -61,7 +61,7 @@ jobs:
           echo "Secure egress gateway did not become ready."
           exit 1
       - name: Install Playwright browser for production verification
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Run authenticated production E2E tests
         shell: bash
         run: |

@@ -138,8 +138,12 @@ test("imports and exports a DevLens collection", async ({ page }) => {
   });
   await expect(page.locator(".collection-list")).toContainText("Imported API");
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export selected" }).click();
-  const download = await downloadPromise;
+  const importedCard = page.locator(".screen-card").filter({
+    has: page.getByRole("heading", { name: "Imported API", exact: true })
+  });
+  const importedDownloadPromise = page.waitForEvent("download");
+  await importedCard.getByRole("button", { name: "Export", exact: true }).click();
+  const download = await importedDownloadPromise;
   expect(download.suggestedFilename()).toContain("imported-api");
 });
 
@@ -163,11 +167,15 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   page.once("dialog", dialog => dialog.accept("Renamed API"));
   await page.getByRole("button", { name: "Rename", exact: true }).first().click();
   await expect(page.locator(".screen-card-grid")).toContainText("Renamed API");
-  const renamedCard = page.locator(".screen-card").filter({ hasText: "Renamed API" });
-  await renamedCard.getByRole("button", { name: "Duplicate" }).click();
+  const renamedCard = page.locator(".screen-card").filter({
+    has: page.getByRole("heading", { name: "Renamed API", exact: true })
+  });
+  await renamedCard.getByRole("button", { name: "Duplicate", exact: true }).click();
   await expect(page.locator(".screen-card-grid")).toContainText("Renamed API copy");
   page.once("dialog", dialog => dialog.accept());
-  const copyCard = page.locator(".screen-card").filter({ hasText: "Renamed API copy" });
+  const copyCard = page.locator(".screen-card").filter({
+    has: page.getByRole("heading", { name: "Renamed API copy", exact: true })
+  });
   await copyCard.getByRole("button", { name: "Delete" }).click();
   await expect(page.locator(".screen-card-grid")).not.toContainText("Renamed API copy");
 });
