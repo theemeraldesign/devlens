@@ -19,7 +19,7 @@
 - [x] Response status, timing, size, body and headers.
 - [x] Cancel in-flight requests and resend requests.
 - [ ] Multipart form data and URL-encoded body editors.
-- [ ] Environment variable interpolation.
+- [x] Environment variable interpolation.
 - [ ] Persist and search request history.
 - [ ] Collection rename, delete, duplicate and export/import.
 
