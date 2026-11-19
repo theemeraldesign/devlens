@@ -37,7 +37,12 @@ function publicBody(source: unknown): string {
 
 function sanitizeJson(value: unknown): unknown {
   const blockedKey = /authorization|cookie|token|secret|password|credential|api[-_]?key|apikey|environment|history|owner_id|collection_id|user_id|email|username|profile|account/i;
-  if (Array.isArray(value)) return value.map(sanitizeJson);
+  if (Array.isArray(value)) return value.filter((item) => {
+    if (!item || typeof item !== "object") return true;
+    const row = item as Record<string, unknown>;
+    const label = String(row.key ?? row.name ?? "");
+    return !blockedKey.test(label);
+  }).map(sanitizeJson);
   if (!value || typeof value !== "object") return value;
   const output: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
