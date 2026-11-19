@@ -351,7 +351,7 @@ test("response inspector formats XML and downloads it with an XML extension", as
   await page.locator(".url-row .send-button").click();
   await expect(page.locator(".response-code")).toContainText("<item>DevLens</item>");
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("devlens-response.xml");
 });
