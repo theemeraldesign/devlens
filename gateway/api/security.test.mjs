@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createSignature, verifySignature, validateEnvelope } from "./security.mjs";
+import { createSignature, verifySignature, validateEnvelope, collectResponseHeaders } from "./security.mjs";
 import { isSafeIpAddress } from "guarded-fetch";
 
 const secret = "test-secret-for-signature-checks";
@@ -49,4 +49,19 @@ test("guarded-fetch permits public destination IPs", () => {
   for (const address of ["1.1.1.1", "8.8.8.8", "2606:4700:4700::1111"]) {
     assert.equal(isSafeIpAddress(address), true, address);
   }
+});
+
+
+test("response headers omit cookies and enforce count and byte limits", () => {
+  const headers = new Headers({
+    "content-type": "application/json",
+    "x-trace": "devlens",
+    "set-cookie": "session=secret"
+  });
+  assert.deepEqual(collectResponseHeaders(headers), {
+    "content-type": "application/json",
+    "x-trace": "devlens"
+  });
+  assert.throws(() => collectResponseHeaders(headers, 1), /RESPONSE_HEADERS_TOO_LARGE/);
+  assert.throws(() => collectResponseHeaders(new Headers({ "x-large": "x".repeat(32) }), 60, 16), /RESPONSE_HEADERS_TOO_LARGE/);
 });
