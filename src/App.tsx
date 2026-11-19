@@ -660,6 +660,7 @@ export default function App() {
           {menuOpen && <><button className="menu-scrim" aria-label="Close menu" onClick={()=>setMenuOpen(false)}></button><div className="account-menu">
             <div className="menu-account"><span className="menu-avatar">{accountEmail?accountEmail.slice(0,1).toUpperCase():"G"}</span><span><b>{accountEmail??"Guest workspace"}</b><small>{accountEmail?"Signed in":"Local device session"}</small></span></div>
             <button onClick={()=>{setMenuOpen(false);accountId?signOut():setShowAuth(true);}}><UserRound size={16}/>{accountId?"Sign out":"Sign in / Create account"}<ChevronRight size={14}/></button>
+            <button onClick={()=>{setMenuOpen(false);setShowNew(true);}}><Plus size={16}/>New collection<ChevronRight size={14}/></button>
             <div className="menu-divider"/>
             {(["workspace","collections","environments","history","tools"] as AppPage[]).map(page=><button key={page} onClick={()=>navigateTo(page)}>{page==="workspace"?<Activity size={16}/>:page==="collections"?<Folder size={16}/>:page==="environments"?<Globe2 size={16}/>:page==="history"?<History size={16}/>:<Braces size={16}/>}<span>{pageTitles[page]}</span><ChevronRight size={14}/></button>)}
             <div className="menu-divider"/><button onClick={()=>{setMenuOpen(false);setDark(v=>!v);}}>{dark?<Sun size={16}/>:<Moon size={16}/>}<span>Switch to {dark?"light":"dark"} theme</span><ChevronRight size={14}/></button>
