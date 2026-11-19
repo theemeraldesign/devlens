@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createUuid, decodeUrl, encodeUrl, fromBase64, inspectJwt, prettyJson, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
+import { createUuid, decodeUrl, encodeUrl, fromBase64, importCurl, inspectJwt, prettyJson, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
 
 describe("developer utilities", () => {
   it("formats JSON", () => expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}'));
@@ -69,4 +69,28 @@ describe("public snapshot data minimization", () => {
       .toEqual({ requests: [{ body: "" }] });
   });
 
+});
+
+
+describe("cURL import", () => {
+  it("parses method, quoted URL, headers and JSON body", () => {
+    expect(importCurl("curl -X POST 'https://api.example.com/items?mode=fast' -H 'Content-Type: application/json' -H 'X-Client: devlens' --data-raw '{\"name\":\"Ada Lovelace\"}'")).toEqual({
+      method: "POST",
+      url: "https://api.example.com/items?mode=fast",
+      headers: { "Content-Type": "application/json", "X-Client": "devlens" },
+      body: "{\"name\":\"Ada Lovelace\"}"
+    });
+  });
+  it("infers POST for a data body and GET for a URL-only command", () => {
+    expect(importCurl("curl https://api.example.com/items -d hello").method).toBe("POST");
+    expect(importCurl("curl https://api.example.com/items").method).toBe("GET");
+  });
+  it("rejects shell operators and command substitution", () => {
+    expect(() => importCurl("curl https://api.example.com; whoami")).toThrow(/Shell operators/);
+    expect(() => importCurl("curl $(whoami)")).toThrow(/substitution/);
+  });
+  it("rejects unsupported protocols and flags", () => {
+    expect(() => importCurl("curl file:///etc/passwd")).toThrow(/HTTP and HTTPS/);
+    expect(() => importCurl("curl --output result.txt https://api.example.com")).toThrow(/Unsupported cURL option/);
+  });
 });
