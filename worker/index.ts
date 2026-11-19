@@ -14,16 +14,16 @@ type ProxyInput = {
 };
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
-const PRIVATE_HOSTS = /^(localhost|.*\\.localhost|.*\\.local|.*\\.internal|.*\\.intranet|.*\\.lan|.*\\.home\\.arpa|metadata\\.google\\.internal)$/i;
+const PRIVATE_HOSTS = /^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.intranet|.*\.lan|.*\.home\.arpa|metadata\.google\.internal)$/i;
 
 export function isPrivateAddress(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\\[|\\]$/g, "").split("%")[0];
+  const h = host.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
   if (PRIVATE_HOSTS.test(h)) return true;
 
   if (h.includes(":")) {
     if (h.startsWith("::ffff:")) {
       const mapped = h.slice(7);
-      if (/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(mapped)) return isPrivateAddress(mapped);
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(mapped)) return isPrivateAddress(mapped);
       return true;
     }
     if (h === "::" || h === "::1" || h.startsWith("fc") || h.startsWith("fd") || /^fe[89ab]/.test(h) || h.startsWith("ff")) return true;
@@ -33,7 +33,7 @@ export function isPrivateAddress(host: string): boolean {
     return false;
   }
 
-  if (/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)) {
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) {
     const [a,b,c] = h.split(".").map(Number);
     if ([a,b,c].some(n => n < 0 || n > 255)) return true;
     if (a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) ||
@@ -47,13 +47,12 @@ export function isPrivateAddress(host: string): boolean {
 }
 
 function isIpLiteral(host: string): boolean {
-  return host.includes(":") || /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(host);
+  return host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 }
 
 async function resolvesOnlyToPublicAddresses(host: string, signal: AbortSignal): Promise<boolean> {
   if (isIpLiteral(host)) return !isPrivateAddress(host);
-  const queries = ["A", "AAAA"];
-  const results = await Promise.all(queries.map(async type => {
+  const results = await Promise.all(["A", "AAAA"].map(async type => {
     const endpoint = new URL("https://cloudflare-dns.com/dns-query");
     endpoint.searchParams.set("name", host);
     endpoint.searchParams.set("type", type);
