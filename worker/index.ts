@@ -11,6 +11,7 @@ type ProxyInput = {
   url?: string;
   headers?: Record<string, string>;
   body?: string;
+  bodyType?: "json" | "text" | "urlencoded" | "formdata";
 };
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
@@ -66,6 +67,32 @@ async function resolvesOnlyToPublicAddresses(host: string, signal: AbortSignal):
   );
   if (!answers.length) return false;
   return answers.every(address => !isPrivateAddress(address));
+}
+
+
+export function buildOutboundBody(method: string, bodyType: ProxyInput["bodyType"], rawBody: string, headers: Headers): BodyInit | undefined {
+  if (method === "GET" || method === "HEAD" || !rawBody) return undefined;
+  if (bodyType === "formdata") {
+    headers.delete("content-type");
+    let rows: unknown;
+    try { rows = JSON.parse(rawBody); } catch { throw new Error("Form-data must be a JSON array of key/value pairs."); }
+    if (!Array.isArray(rows) || rows.length > 100) throw new Error("Form-data must contain no more than 100 fields.");
+    const form = new FormData();
+    for (const row of rows) {
+      if (!row || typeof row !== "object" || typeof row.key !== "string" || typeof row.value !== "string" ||
+          !row.key.trim() || row.key.length > 256 || row.value.length > 100_000) {
+        throw new Error("Each form-data field needs a key and text value. Keys are limited to 256 characters and values to 100 KB.");
+      }
+      form.append(row.key, row.value);
+    }
+    return form;
+  }
+  if (!headers.has("content-type")) {
+    const contentType = bodyType === "text" ? "text/plain; charset=utf-8" :
+      bodyType === "urlencoded" ? "application/x-www-form-urlencoded" : "application/json";
+    headers.set("content-type", contentType);
+  }
+  return rawBody;
 }
 
 function json(data: unknown, status = 200): Response {
@@ -140,8 +167,9 @@ async function proxy(request: Request, env: Env): Promise<Response> {
       if (key.length > 128 || String(value).length > 8192) return json({ error: "A request header is too large." }, 400);
       headers.set(key, String(value));
     }
-    const body = ["GET", "HEAD"].includes(method) ? undefined : String(input.body || "");
-    if (body && !headers.has("content-type")) headers.set("content-type", "application/json");
+    let body: BodyInit | undefined;
+    try { body = buildOutboundBody(method, input.bodyType, String(input.body || ""), headers); }
+    catch (error) { return json({ error: error instanceof Error ? error.message : "Invalid request body." }, 400); }
 
     // Redirects are deliberately not followed. The caller must submit the final URL for a fresh validation.
     const upstream = await fetch(target, { method, headers, body, redirect: "manual", signal: controller.signal });
