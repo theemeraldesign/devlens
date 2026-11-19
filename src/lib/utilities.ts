@@ -78,3 +78,22 @@ export function safePublicCollection(value: unknown): unknown {
   };
   return visit(value);
 }
+
+const sensitiveQueryKey = /^(key|api[-_]?key|apikey|token|access_token|refresh_token|password|secret|client_secret|authorization|auth)$/i;
+
+export function redactUrl(source: string): string {
+  try {
+    const url = new URL(source);
+    for (const key of [...url.searchParams.keys()]) {
+      if (sensitiveQueryKey.test(key)) url.searchParams.set(key, "[REDACTED]");
+    }
+    return url.toString();
+  } catch {
+    return "[INVALID URL]";
+  }
+}
+
+export function safeSavedHeaders(headers: Array<{ key: string; value: string; enabled: boolean }>) {
+  const sensitive = /authorization|proxy-authorization|cookie|token|secret|password|api[-_]?key|apikey/i;
+  return headers.filter(header => !sensitive.test(header.key)).map(({ key, value, enabled }) => ({ key, value, enabled }));
+}
