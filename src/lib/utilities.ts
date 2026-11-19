@@ -34,9 +34,11 @@ export function createUuid(): string {
 
 export function exportCurl(input: { method: string; url: string; headers: Record<string, string>; body?: string }): string {
   const quote = (value: string) => "'" + value.replace(/'/g, "'\\''") + "'";
-  const lines = ["curl", quote(input.url), "-X", input.method.toUpperCase()];
-  for (const [key, value] of Object.entries(input.headers)) lines.push("-H", quote(key + ": " + value));
-  if (input.body) lines.push("--data-raw", quote(input.body));
+  const lines = ["curl", quote(input.url)];
+  const method = input.method.toUpperCase();
+  if (method !== "GET") lines.push("-X " + method);
+  for (const [key, value] of Object.entries(input.headers)) lines.push("-H " + quote(key + ": " + value));
+  if (input.body) lines.push("--data-raw " + quote(input.body));
   return lines.join(" \\\n  ");
 }
 
