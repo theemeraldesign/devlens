@@ -1,63 +1,42 @@
-# Roadmap
+# Cloudflare deployment
 
-## Release foundation
-- [x] Public landing page with responsive product preview and motion.
-- [x] Reduced-motion support.
-- [x] Account-required workspace access. No guest workspace entry.
-- [x] Email/password sign-up and sign-in.
-- [x] Password reset email and password update flow.
-- [x] Legacy local workspace data import for existing users.
-- [x] Supabase owner-scoped RLS and restricted public snapshot view.
-- [x] CI and Cloudflare deployment workflows.
-- [x] Verify the public landing page against the live production domain after deployment.
-- [ ] Verify the authenticated workspace against a dedicated test account in CI.
-- [ ] Add authenticated production-like Playwright credentials to CI for full account-backed regression coverage.
+The production deployment workflow runs on pushes to `main` and can also be started manually. It runs typecheck, unit tests, a production build, and browser checks before deploying the Worker and static assets. It then runs the public browser checks against `https://devlens.cc.cd`.
 
-## Request studio
-- [x] Seven HTTP methods.
-- [x] URL, query parameters, headers, request body editor, and request authentication.
-- [x] JSON, text, URL-encoded, and multipart form-data text fields.
-- [x] Multipart file selection and browser upload, with a 10 MB total limit.
-- [x] Response status, timing, size, body, and headers.
-- [x] JSON formatting and XML indentation in the response inspector.
-- [x] Response downloads as JSON, XML, or text.
-- [x] Cancel and resend requests.
-- [x] Environment variable interpolation.
-- [x] Request history with redaction, search, account sync, and clearing.
-- [x] Collection create, rename, duplicate, delete, import, and export.
+## GitHub repository secrets
 
-## Developer utilities
-- [x] JSON formatter and diff.
-- [x] JWT decoder with explicit no-signature-verification warning.
-- [x] Base64 and URL encode/decode.
-- [x] UUID generator.
-- [x] cURL import/export with shell-input safeguards.
-- [x] XML formatter utility with mixed-content preservation and malformed-tag checks.
+Add these under Settings → Secrets and variables → Actions:
 
-## Accounts, sync, and sharing
-- [x] Supabase email/password authentication.
-- [x] Password recovery and update.
-- [x] Account-only access to the workspace.
-- [x] Cloud collection create/save and cross-device loading.
-- [x] Private environment CRUD and cross-device sync.
-- [x] Redacted request-history sync.
-- [x] Public collection publishing with server-side sanitisation.
-- [x] Public shared collection viewing, account-required import, and unpublish.
-- [ ] Full sync conflict resolution and offline queue handling.
-- [ ] End-to-end verification against a dedicated test account.
+| Secret | Value |
+| --- | --- |
+| CLOUDFLARE_API_TOKEN | A Cloudflare API token scoped to the Projects Account with Workers Scripts: Edit and Account Settings: Read. The Cloudflare dashboard's Edit Cloudflare Workers token template is another supported starting point; restrict its account scope. |
+| CLOUDFLARE_ACCOUNT_ID | `c76cbb7dc13126491526912181cae743`. |
+| VITE_SUPABASE_URL | `https://ufptcrhuibihwzjbjhqc.supabase.co`. |
+| VITE_SUPABASE_PUBLISHABLE_KEY | The project's Supabase publishable key. Safe for browser use. |
+| DEVLENS_E2E_EMAIL | Email for a dedicated, confirmed Supabase test account. |
+| DEVLENS_E2E_PASSWORD | Password for that test account. |
 
-## Security release blocker
-- [x] Owner-scoped database policies and restricted public snapshots.
-- [x] Request/response size limits, timeout controls, redirect restrictions, and public-address checks in the Worker.
-- [ ] Implement DNS-pinned outbound egress. Current proxy remains disabled.
-- [ ] Add adversarial SSRF tests for IPv4, IPv6, DNS rebinding, redirects, metadata endpoints, and alternate IP encodings.
-- [ ] Enable server-side proxy only after independent security review.
+Do not add a Supabase secret or service-role key to GitHub Actions or the browser build. The publishing Edge Function uses the service-role key supplied by Supabase's managed runtime. The CI workflow uses the VITE keys and optional test-account secrets to run account-backed workspace tests. Keep the test account separate from your personal account.
 
-## Later releases
-- OpenAPI import.
-- Collection runner and assertions.
-- Request chaining.
-- API documentation generation.
-- WebSocket and GraphQL support.
-- Team collaboration.
-- CLI companion.
+## Supabase Auth URL configuration
+
+In Supabase Dashboard → Authentication → URL Configuration:
+
+- Set Site URL to `https://devlens.cc.cd`.
+- Add the exact production redirect `https://devlens.cc.cd/?password-reset=1`.
+- Add `https://devlens.cc.cd/` for the site root.
+- For local development, add `http://localhost:5173/**`.
+
+The password recovery flow depends on the redirect URL being on the allow list. If you customise the recovery email template, make sure it honours the supplied redirect destination.
+
+## Run deployment
+
+1. Open the DevLens repository on GitHub.
+2. Select Actions.
+3. Select Deploy DevLens to Cloudflare.
+4. Select Run workflow on the main branch. The workflow uses Cloudflare's current Wrangler Action v4.
+
+The workflow stops before deployment if typecheck, unit tests or the production build fails. The Worker ships with `PROXY_EGRESS_ENABLED=false`, so the app can be deployed without exposing the unfinished outbound proxy.
+
+## Production gate
+
+Do not change `PROXY_EGRESS_ENABLED` to `true` until DNS-pinned outbound egress or an equivalent reviewed SSRF control is in place. The current Worker validates DNS answers and blocks redirects, but it cannot guarantee that the address used by the subsequent outbound fetch is the same address that was validated. See [the security review](SECURITY.md).
