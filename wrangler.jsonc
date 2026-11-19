@@ -30,7 +30,10 @@
     "MAX_REQUEST_BYTES": "1048576",
     "MAX_RESPONSE_BYTES": "5242880",
     "REQUEST_TIMEOUT_MS": "20000",
-    "PROXY_EGRESS_ENABLED": "false"
+    "PROXY_EGRESS_ENABLED": "false",
+    "SUPABASE_URL": "https://ufptcrhuibihwzjbjhqc.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_TcMeVeYLosv7U-wM5WqlOw_D7-YuOGX",
+    "EGRESS_GATEWAY_URL": "https://devlens-egress.vercel.app/api/proxy"
   },
   "routes": [
     {
