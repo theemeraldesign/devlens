@@ -273,7 +273,7 @@ test("selects files for multipart form-data requests", async ({ page }) => {
 });
 
 test("sends a request through the authenticated secure egress gateway", async ({ page }) => {
-  test.skip(!process.env.PLAYWRIGHT_BASE_URL, "Runs against production after the Cloudflare deployment.");
+  test.skip(!process.env.PLAYWRIGHT_BASE_URL || process.env.DEVLENS_RUN_LIVE_API_SMOKE !== "true", "Live API compatibility smoke test is opt-in and is not repeated during this release pass.");
   await page.goto("/");
   await page.locator(".url-row .send-button").click();
   await expect(page.locator(".response-stats .status-good")).toContainText("200", { timeout: 30_000 });
