@@ -56,7 +56,7 @@ export default function App() {
 
   async function syncCloudCollections(userId: string) {
     if (!supabase) return;
-    const { data, error: syncError } = await supabase.from("collections").select("id,name,content,updated_at").order("updated_at", { ascending: false });
+    const { data, error: syncError } = await supabase.from("collections").select("id,name,content,updated_at").eq("owner_id", userId).order("updated_at", { ascending: false });
     if (syncError) { setAccountNotice(syncError.message); return; }
     const cloud = (data || []).map(row => {
       const content = row.content as { requests?: LocalCollection["requests"] } | null;
@@ -75,7 +75,7 @@ export default function App() {
 
   async function syncCloudEnvironments(userId: string) {
     if (!supabase) return;
-    const { data, error: syncError } = await supabase.from("environments").select("id,guest_id,name,variables,updated_at,is_active").order("updated_at", { ascending: false });
+    const { data, error: syncError } = await supabase.from("environments").select("id,guest_id,name,variables,updated_at,is_active").eq("owner_id", userId).order("updated_at", { ascending: false });
     if (syncError) { setAccountNotice(syncError.message); return; }
     const cloud = (data || []).map(row => {
       const variables = row.variables && typeof row.variables === "object" ? Object.entries(row.variables as Record<string,string>).map(([key,value]) => ({ id: uid(), key, value: String(value), enabled: true })) : [];
