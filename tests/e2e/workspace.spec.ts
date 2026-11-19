@@ -223,4 +223,12 @@ test("selects files for multipart form-data requests", async ({ page }) => {
   await expect(page.locator(".formdata-file")).toHaveCount(0);
 });
 
+test("sends a request through the authenticated secure egress gateway", async ({ page }) => {
+  test.skip(!process.env.PLAYWRIGHT_BASE_URL, "Runs against production after the Cloudflare deployment.");
+  await page.goto("/");
+  await page.locator(".url-row .send-button").click();
+  await expect(page.locator(".response-stats .status-good")).toContainText("200", { timeout: 30_000 });
+  await expect(page.locator(".response-head")).toContainText("Latest request result");
+});
+
 });
