@@ -36,8 +36,9 @@
 ## Accounts and sharing
 - [x] Email/password authentication.
 - [x] Guest-to-account import flow.
-- [ ] Cloud collection CRUD and cross-device sync.
-- [ ] Private environment CRUD.
+- [x] Cloud collection create/save and cross-device loading.
+- [ ] Collection rename, delete and full sync conflict handling.
+- [x] Private environment CRUD and cross-device sync.
 - [ ] Public collection publishing with server-side sanitization.
 - [ ] Public collection import into a workspace.
 
