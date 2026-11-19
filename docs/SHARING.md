@@ -13,7 +13,7 @@ DevLens public collections are read-only snapshots. Publishing never makes a pri
 ## Snapshot rules
 
 - Only request name, method, URL, safe headers, and JSON request bodies are considered.
-- Authorization, cookies, API keys, passwords, tokens, secrets, credentials, environment data, history, owner IDs, and account/profile fields are removed.
+- Authorization, cookies, API keys, passwords, tokens, JWTs, signatures, private keys, secrets, credentials, environment data, history, owner IDs, and account/profile fields are removed.
 - Sensitive URL query values and URL user-info are redacted.
 - Non-JSON request bodies are omitted.
 - Request count is capped at 500.
