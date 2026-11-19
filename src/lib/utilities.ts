@@ -57,6 +57,18 @@ export function safePublicCollection(value: unknown): unknown {
     const output: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(input)) {
       if (blocked.test(key) || /token|secret|password|credential/i.test(key)) continue;
+      if (key.toLowerCase() === "url" && typeof child === "string") {
+        output[key] = redactUrl(child);
+        continue;
+      }
+      if (key.toLowerCase() === "body" && typeof child === "string") {
+        try {
+          output[key] = JSON.stringify(visit(JSON.parse(child)));
+        } catch {
+          output[key] = "";
+        }
+        continue;
+      }
       if (key.toLowerCase() === "headers" && child && typeof child === "object") {
         if (Array.isArray(child)) {
           output[key] = child
