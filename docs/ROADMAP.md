@@ -9,7 +9,8 @@
 - [x] Legacy local workspace data import for existing users.
 - [x] Supabase owner-scoped RLS and restricted public snapshot view.
 - [x] CI and Cloudflare deployment workflows.
-- [ ] Verify the current release commit through CI, production deployment, and live browser checks.
+- [x] Verify the public landing page against the live production domain after deployment.
+- [ ] Verify the authenticated workspace against a dedicated test account in CI.
 - [ ] Add authenticated production-like Playwright credentials to CI for full account-backed regression coverage.
 
 ## Request studio
