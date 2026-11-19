@@ -367,3 +367,11 @@
 .formdata-file button{width:30px;height:30px;border:0;background:none;color:var(--muted)}
 .formdata-upload>p{margin:9px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
 @media(max-width:680px){.formdata-upload-fields{grid-template-columns:1fr 1fr}.formdata-upload-fields label{align-self:end}.formdata-upload-fields input[type=file]{grid-column:2}.formdata-upload-fields input[type=text]{grid-column:2}}
+
+
+.folder-art{width:100%;padding:0;border:0;cursor:pointer;outline-offset:3px}
+.folder-art:focus-visible{outline:2px solid #e5a267}
+.folder-art>div svg{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.folder-art:hover>div svg:nth-child(1),.folder-art.open>div svg:nth-child(1){transform:translate(-15px,-10px) rotate(-15deg)}
+.folder-art:hover>div svg:nth-child(2),.folder-art.open>div svg:nth-child(2){transform:translateY(-18px) rotate(0)}
+.folder-art:hover>div svg:nth-child(3),.folder-art.open>div svg:nth-child(3){transform:translate(15px,-10px) rotate(15deg)}
