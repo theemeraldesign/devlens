@@ -54,18 +54,37 @@ export default function App() {
   const [apiKeyValue, setApiKeyValue] = useState("");
   const [apiKeyLocation, setApiKeyLocation] = useState<"Header" | "Query">("Header");
 
+  async function syncCloudCollections(userId: string) {
+    if (!supabase) return;
+    const { data, error: syncError } = await supabase.from("collections").select("id,name,content,updated_at").order("updated_at", { ascending: false });
+    if (syncError) { setAccountNotice(syncError.message); return; }
+    const cloud = (data || []).map(row => {
+      const content = row.content as { requests?: LocalCollection["requests"] } | null;
+      return { id: row.id, name: row.name, requests: Array.isArray(content?.requests) ? content.requests : [], updatedAt: row.updated_at } as LocalCollection;
+    });
+    const local = readGuestCollections();
+    const cloudIds = new Set(cloud.map(item => item.id));
+    const merged = [...cloud, ...local.filter(item => !cloudIds.has(item.id))];
+    setCollections(merged);
+    writeGuestCollections(merged);
+    if (!activeCollectionId && merged.length) {
+      setActiveCollectionId(merged[0].id);
+      setCollectionName(merged[0].name);
+    }
+  }
+
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
-      if (user && (collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true);
+      if (user) { void syncCloudCollections(user.id); if ((collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
-      if (session?.user && (collections.length || environments.length) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true);
+      if (session?.user) { void syncCloudCollections(session.user.id); if ((collections.length || environments.length) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
       if (!session) setShowImportPrompt(false);
     });
     return () => subscription.unsubscribe();
@@ -98,7 +117,7 @@ export default function App() {
   }, [response]);
 
   const updateRequest = (patch: Partial<ApiRequest>) => setRequest(current => ({ ...current, ...patch }));
-  function createCollection() {
+  async function createCollection() {
     const name = collectionName.trim();
     if (!name) return;
     const collection: LocalCollection = { id: uid(), name, requests: [], updatedAt: new Date().toISOString() };
@@ -107,6 +126,10 @@ export default function App() {
     writeGuestCollections(next);
     setActiveCollectionId(collection.id);
     setShowNew(false);
+    if (supabase && accountId) {
+      const { error: cloudError } = await supabase.from("collections").insert({ id: collection.id, owner_id: accountId, name, content: { requests: [] } });
+      if (cloudError) setAccountNotice(cloudError.message);
+    }
   }
   function saveRequest() {
     const current = collections.find(item => item.id === activeCollectionId);
@@ -118,13 +141,25 @@ export default function App() {
     setCollections(next);
     writeGuestCollections(next);
     setActiveCollectionId(target.id);
+    if (supabase && accountId) {
+      const cloudCollection = next.find(item => item.id === target.id);
+      if (cloudCollection) {
+        const { error: cloudError } = await supabase.from("collections").upsert({
+          id: cloudCollection.id,
+          owner_id: accountId,
+          name: cloudCollection.name,
+          content: { requests: cloudCollection.requests }
+        });
+        if (cloudError) setAccountNotice(cloudError.message);
+      }
+    }
   }
   const updateHeader = (id: string, patch: Partial<HeaderPair>) => updateRequest({ headers: request.headers.map(h => h.id === id ? { ...h, ...patch } : h) });
   async function importGuestData() {
     if (!supabase || !accountId || (!collections.length && !environments.length)) return;
     setAccountNotice("");
     if (collections.length) {
-      const rows = collections.map(({ id, name, requests }) => ({ owner_id: accountId, guest_id: id, name, content: { requests } }));
+      const rows = collections.map(({ id, name, requests }) => ({ id, owner_id: accountId, guest_id: id, name, content: { requests } }));
       const { error: importError } = await supabase.from("collections").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
       if (importError) { setAccountNotice(importError.message); return; }
     }
