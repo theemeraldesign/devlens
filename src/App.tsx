@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, Settings2, ShieldCheck, Sun, X } from "lucide-react";
 import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type HttpMethod } from "./lib/request";
 import { readGuestCollections, writeGuestCollections, type LocalCollection } from "./lib/workspace";
+import { redactUrl, safeSavedHeaders } from "./lib/utilities";
 import { supabase } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
 import UtilityModal from "./components/UtilityModal";
@@ -75,7 +76,7 @@ export default function App() {
   function saveRequest() {
     const current = collections.find(item => item.id === activeCollectionId);
     const target = current ?? { id: uid(), name: "My requests", requests: [], updatedAt: new Date().toISOString() };
-    const saved = { id: uid(), name: "Untitled request", method: request.method, url: request.url, headers: request.headers.map(({key,value,enabled}) => ({key,value,enabled})), body: request.body, createdAt: new Date().toISOString() };
+    const saved = { id: uid(), name: "Untitled request", method: request.method, url: request.url, headers: safeSavedHeaders(request.headers), body: request.body, createdAt: new Date().toISOString() };
     const next = current
       ? collections.map(item => item.id === current.id ? { ...item, requests: [saved, ...item.requests], updatedAt: new Date().toISOString() } : item)
       : [ { ...target, requests: [saved] }, ...collections ];
@@ -115,7 +116,7 @@ export default function App() {
       }
       const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString() });
       setResponse(result);
-      setHistory(items => [request.url, ...items.filter(x => x !== request.url)].slice(0, 12));
+      setHistory(items => [redactUrl(request.url), ...items.filter(x => x !== redactUrl(request.url))].slice(0, 12));
     } catch (e) { setError(e instanceof Error ? e.message : "Request failed."); }
     finally { setBusy(false); }
   }
