@@ -35,3 +35,20 @@ export function validateEnvelope(value) {
   if (!["json", "text", "urlencoded", "formdata", undefined].includes(bodyType)) return "Unsupported request body type.";
   return null;
 }
+
+
+export function collectResponseHeaders(headers, maxCount = 60, maxBytes = 16_384) {
+  const result = {};
+  let count = 0;
+  let bytes = 0;
+  for (const [key, value] of headers.entries()) {
+    if (["set-cookie", "set-cookie2"].includes(key.toLowerCase())) continue;
+    count += 1;
+    bytes += Buffer.byteLength(key) + Buffer.byteLength(value);
+    if (count > maxCount || bytes > maxBytes) {
+      throw new Error("RESPONSE_HEADERS_TOO_LARGE");
+    }
+    result[key] = value;
+  }
+  return result;
+}
