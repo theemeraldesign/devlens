@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createUuid, decodeUrl, encodeUrl, fromBase64, importCurl, inspectJwt, prettyJson, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
+import { createUuid, decodeUrl, encodeUrl, fromBase64, importCurl, inspectJwt, prettyJson, prettyXml, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
 
 describe("developer utilities", () => {
   it("formats JSON", () => expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}'));
+  it("formats nested XML while preserving attributes and text", () => expect(prettyXml('<root><item id="1">value</item><empty/></root>')).toBe('<root>\\n  <item id="1">\\n    value\\n  </item>\\n  <empty/>\\n</root>'));
+  it("rejects mismatched XML tags", () => expect(() => prettyXml('<root><item></root>')).toThrow(/mismatched/));
   it("round-trips unicode base64", () => expect(fromBase64(toBase64("DevLens ✓"))).toBe("DevLens ✓"));
   it("round-trips URL components", () => expect(decodeUrl(encodeUrl("hello world/✓"))).toBe("hello world/✓"));
   it("creates UUIDs", () => expect(createUuid()).toMatch(/^[0-9a-f-]{36}$/i));
