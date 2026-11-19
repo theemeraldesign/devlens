@@ -15,7 +15,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.81.1",
+    "@supabase/supabase-js": "2.119.0",
     "clsx": "2.1.1",
     "lucide-react": "0.468.0",
     "react": "19.1.1",
@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.13.12",
+    "@cloudflare/workers-types": "4.20261119.0",
     "@playwright/test": "1.56.1",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.1",
@@ -32,6 +33,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "7.2.2",
-    "vitest": "4.0.8"
+    "vitest": "4.0.8",
+    "wrangler": "4.50.0"
   }
 }
