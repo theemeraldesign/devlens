@@ -129,13 +129,13 @@ export default function App() {
     setEditingEnvironment(null);
     if (supabase && accountId) {
       const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
-      if (deactivateError) { setAccountNotice(deactivateError.message); writeGuestEnvironments(next.filter(item => !item.cloudOwnerId)); return; }
+      if (deactivateError) { setAccountNotice(deactivateError.message); const localFallback = next.map(item => item.id === environment.id ? { ...item, cloudOwnerId: undefined } : item); setEnvironments(localFallback); writeGuestEnvironments(localFallback.filter(item => !item.cloudOwnerId)); return; }
       const variables = Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value]));
       const { error: saveError } = await supabase.from("environments").upsert({
         id: environment.id, owner_id: accountId, guest_id: environment.id,
         name: environment.name, variables, is_active: true
       }, { onConflict: "owner_id,guest_id" });
-      if (saveError) { setAccountNotice(saveError.message); writeGuestEnvironments(next.filter(item => !item.cloudOwnerId)); return; }
+      if (saveError) { setAccountNotice(saveError.message); const localFallback = next.map(item => item.id === environment.id ? { ...item, cloudOwnerId: undefined } : item); setEnvironments(localFallback); writeGuestEnvironments(localFallback.filter(item => !item.cloudOwnerId)); return; }
       setEnvironments(next.map(item => item.id === environment.id ? { ...item, cloudOwnerId: accountId } : item));
       const guestBackup = readGuestEnvironments();
       if (guestBackup.some(item => item.id === environment.id)) writeGuestEnvironments(guestBackup.map(item => item.id === environment.id ? environment : item));
