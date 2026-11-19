@@ -43,11 +43,35 @@ export function exportCurl(input: { method: string; url: string; headers: Record
 export function safePublicCollection(value: unknown): unknown {
   const blocked = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api-key|password|secret|client_secret)$/i;
   const visit = (input: unknown): unknown => {
-    if (Array.isArray(input)) return input.map(visit);
+    if (Array.isArray(input)) {
+      return input
+        .filter(item => {
+          if (!item || typeof item !== "object") return true;
+          const row = item as Record<string, unknown>;
+          const label = String(row.key ?? row.name ?? "");
+          return !blocked.test(label) && !/token|secret|password|credential/i.test(label);
+        })
+        .map(visit);
+    }
     if (!input || typeof input !== "object") return input;
     const output: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(input)) {
       if (blocked.test(key) || /token|secret|password|credential/i.test(key)) continue;
+      if (key.toLowerCase() === "headers" && child && typeof child === "object") {
+        if (Array.isArray(child)) {
+          output[key] = child
+            .filter(row => {
+              if (!row || typeof row !== "object") return false;
+              const header = row as Record<string, unknown>;
+              const label = String(header.key ?? header.name ?? "");
+              return !blocked.test(label) && !/token|secret|password|credential/i.test(label);
+            })
+            .map(visit);
+        } else {
+          output[key] = Object.fromEntries(Object.entries(child as Record<string, unknown>).filter(([name]) => !blocked.test(name) && !/token|secret|password|credential/i.test(name)).map(([name, value]) => [name, visit(value)]));
+        }
+        continue;
+      }
       output[key] = visit(child);
     }
     return output;
