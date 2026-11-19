@@ -62,3 +62,31 @@ test("imports and exports a DevLens collection", async ({ page }) => {
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain("imported-api");
 });
+
+
+test("imports a cURL command into the request editor", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Utilities" }).click();
+  await page.getByRole("button", { name: "cURL importer" }).click();
+  await page.locator(".utility-input").fill("curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{\"name\":\"DevLens\"}'");
+  await page.getByRole("button", { name: /run utility/i }).click();
+  await page.getByRole("button", { name: "Load into request editor" }).click();
+  await expect(page.getByLabel("HTTP method")).toHaveValue("POST");
+  await expect(page.getByLabel("Request URL")).toHaveValue("https://api.example.com/items");
+  await expect(page.locator(".body-editor")).toContainText("DevLens");
+});
+
+test("renames, duplicates and deletes a collection", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /new collection/i }).click();
+  await page.getByPlaceholder("Collection name").fill("Portfolio API");
+  await page.getByRole("button", { name: "Create collection" }).click();
+  page.once("dialog", dialog => dialog.accept("Renamed API"));
+  await page.getByRole("button", { name: "Rename Portfolio API" }).click();
+  await expect(page.locator(".collection-list")).toContainText("Renamed API");
+  await page.getByRole("button", { name: "Duplicate Renamed API" }).click();
+  await expect(page.locator(".collection-list")).toContainText("Renamed API copy");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Delete Renamed API copy" }).click();
+  await expect(page.locator(".collection-list")).not.toContainText("Renamed API copy");
+});
