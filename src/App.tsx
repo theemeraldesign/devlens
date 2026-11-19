@@ -613,7 +613,10 @@ export default function App() {
         if (apiKeyLocation === "Header") outgoingHeaders.push({ id: uid(), key: resolve(apiKeyName), value: resolve(apiKeyValue), enabled: true });
         else finalUrl.searchParams.set(resolve(apiKeyName), resolve(apiKeyValue));
       }
-      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString(), body: resolve(request.body), bodyType: request.bodyType }, controller.signal, formFiles.map(({key,file})=>({key,file})));
+      const { data: sessionData, error: sessionError } = supabase ? await supabase.auth.getSession() : { data: { session: null }, error: null };
+      if (sessionError) throw sessionError;
+      if (!sessionData.session) throw new Error("Your session has expired. Sign in again to send this request.");
+      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString(), body: resolve(request.body), bodyType: request.bodyType }, controller.signal, formFiles.map(({key,file})=>({key,file})), sessionData.session.access_token);
       setResponse(result);
       const historyItem: RequestHistoryItem = {
         id: uid(), method: request.method, url: redactUrl(finalUrl.toString()),

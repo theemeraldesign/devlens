@@ -48,3 +48,28 @@ jobs:
           done
           curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors https://devlens.cc.cd/ -o /tmp/devlens-live.html
           grep -qi "<title>DevLens" /tmp/devlens-live.html
+      - name: Wait for the secure egress gateway deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..12}; do
+            status="$(curl --silent --show-error --output /tmp/devlens-gateway.json --write-out '%{http_code}' https://devlens-egress.vercel.app/api/proxy || true)"
+            if [ "$status" = "405" ]; then exit 0; fi
+            sleep 5
+          done
+          cat /tmp/devlens-gateway.json || true
+          echo "Secure egress gateway did not become ready."
+          exit 1
+      - name: Install Playwright browser for production verification
+        run: npx playwright install --with-deps chromium
+      - name: Run authenticated production E2E tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEVLENS_E2E_EMAIL" || { echo "DEVLENS_E2E_EMAIL is missing."; exit 1; }
+          test -n "$DEVLENS_E2E_PASSWORD" || { echo "DEVLENS_E2E_PASSWORD is missing."; exit 1; }
+          npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: https://devlens.cc.cd
+          DEVLENS_E2E_EMAIL: ${{ secrets.DEVLENS_E2E_EMAIL }}
+          DEVLENS_E2E_PASSWORD: ${{ secrets.DEVLENS_E2E_PASSWORD }}

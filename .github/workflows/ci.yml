@@ -38,3 +38,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: End-to-end tests
         run: npm run test:e2e
+      - name: Verify secure egress gateway
+        working-directory: gateway
+        run: |
+          npm install --no-audit --no-fund
+          npm test

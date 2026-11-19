@@ -72,7 +72,7 @@ test.describe("authenticated workspace", () => {
   test.skip(!process.env.DEVLENS_E2E_EMAIL || !process.env.DEVLENS_E2E_PASSWORD, "Set DEVLENS_E2E_EMAIL and DEVLENS_E2E_PASSWORD to run account-backed workspace tests.");
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).first().click();
     await page.getByLabel("Email address").fill(process.env.DEVLENS_E2E_EMAIL || "");
     await page.getByLabel("Password").fill(process.env.DEVLENS_E2E_PASSWORD || "");
     await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
@@ -221,6 +221,14 @@ test("selects files for multipart form-data requests", async ({ page }) => {
   await expect(page.locator(".formdata-file")).toContainText("avatar");
   await page.getByRole("button", { name: "Remove file avatar.txt" }).click();
   await expect(page.locator(".formdata-file")).toHaveCount(0);
+});
+
+test("sends a request through the authenticated secure egress gateway", async ({ page }) => {
+  test.skip(!process.env.PLAYWRIGHT_BASE_URL, "Runs against production after the Cloudflare deployment.");
+  await page.goto("/");
+  await page.locator(".url-row .send-button").click();
+  await expect(page.locator(".response-stats .status-good")).toContainText("200", { timeout: 30_000 });
+  await expect(page.locator(".response-head")).toContainText("Latest request result");
 });
 
 });

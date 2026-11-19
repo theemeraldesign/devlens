@@ -3,7 +3,6 @@ export type HeaderPair = { id: string; key: string; value: string; enabled: bool
 export type ApiRequest = { method: HttpMethod; url: string; headers: HeaderPair[]; body: string; bodyType?: "json" | "text" | "urlencoded" | "formdata" };
 export type ApiResponse = { status: number; statusText: string; duration: number; size: number; headers: Record<string, string>; body: string };
 
-const PROXY_DISABLED_MESSAGE = "The API request proxy is temporarily disabled while secure outbound networking is configured.";
 const MAX_BROWSER_REQUEST_BYTES = 10 * 1024 * 1024;
 const MAX_BROWSER_RESPONSE_BYTES = 5 * 1024 * 1024;
 
@@ -109,22 +108,20 @@ async function sendBrowserRequest(request: ApiRequest, signal?: AbortSignal, fil
   }
 }
 
-export async function sendRequest(request: ApiRequest, signal?: AbortSignal, files: Array<{ key: string; file: File }> = []): Promise<ApiResponse> {
+export async function sendRequest(request: ApiRequest, signal?: AbortSignal, files: Array<{ key: string; file: File }> = [], accessToken?: string): Promise<ApiResponse> {
   // Multipart files are sent directly from the browser. The JSON Worker proxy cannot carry File objects.
   if (files.length && (request.method === "GET" || request.method === "HEAD")) throw new Error("File uploads require a request method that supports a body, such as POST, PUT, or PATCH.");
   if (files.length) return sendBrowserRequest(request, signal, files);
+  if (!accessToken) throw new Error("Sign in to your DevLens account before sending a proxied request.");
   const started = performance.now();
   const headers = Object.fromEntries(request.headers.filter(h => h.enabled && h.key.trim()).map(h => [h.key.trim(), h.value]));
   const response = await fetch("/api/proxy", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-devlens-client-id": getClientId() },
+    headers: { "content-type": "application/json", "x-devlens-client-id": getClientId(), authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ method: request.method, url: request.url, headers, body: request.body, bodyType: request.bodyType }),
     signal
   });
   const payload = await response.json() as ApiResponse & { error?: string };
-  if (response.status === 503 && payload.error === PROXY_DISABLED_MESSAGE) {
-    return sendBrowserRequest(request, signal, files);
-  }
   if (!response.ok && payload.error) throw new Error(payload.error);
   return { ...payload, duration: Math.round(performance.now() - started) };
 }
