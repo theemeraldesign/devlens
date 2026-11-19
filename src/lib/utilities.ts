@@ -188,7 +188,7 @@ export function importCurl(command: string): ImportedCurlRequest {
     if (arg === "-I" || arg === "--head") { method = "HEAD"; continue; }
     if (["-L", "--location", "-s", "--silent", "-S", "--show-error", "-k", "--insecure", "--compressed", "--globoff", "--http1.1", "--http2"].includes(arg)) continue;
     if (arg.startsWith("-")) throw new Error("Unsupported cURL option: " + arg);
-    if (/^https?:\/\//i.test(arg)) { url = arg; continue; }
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(arg)) { url = arg; continue; }
     throw new Error("Unexpected cURL argument: " + arg);
   }
   if (!url) throw new Error("No HTTP or HTTPS URL was found in the cURL command.");
