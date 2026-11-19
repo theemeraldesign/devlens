@@ -47,7 +47,7 @@ create table public.public_collection_snapshots (
 create index collections_owner_updated_idx on public.collections(owner_id, updated_at desc);
 create index environments_owner_idx on public.environments(owner_id);
 create index request_history_owner_created_idx on public.request_history(owner_id, created_at desc);
-create index public_snapshots_slug_idx on public.public_collection_snapshots(slug);
+create index public_snapshots_owner_idx on public.public_collection_snapshots(owner_id);
 
 alter table public.collections enable row level security;
 alter table public.environments enable row level security;
@@ -69,10 +69,18 @@ on public.request_history for all to authenticated
 using ((select auth.uid()) = owner_id)
 with check ((select auth.uid()) = owner_id);
 
-create policy "Owners manage public snapshots"
-on public.public_collection_snapshots for all to authenticated
+create policy "Owners insert public snapshots"
+on public.public_collection_snapshots for insert to authenticated
+with check ((select auth.uid()) = owner_id);
+
+create policy "Owners update public snapshots"
+on public.public_collection_snapshots for update to authenticated
 using ((select auth.uid()) = owner_id)
 with check ((select auth.uid()) = owner_id);
+
+create policy "Owners delete public snapshots"
+on public.public_collection_snapshots for delete to authenticated
+using ((select auth.uid()) = owner_id);
 
 create policy "Anyone can read published snapshots"
 on public.public_collection_snapshots for select to anon, authenticated
