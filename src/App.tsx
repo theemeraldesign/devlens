@@ -8,6 +8,7 @@ import { supabase } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
 import UtilityModal from "./components/UtilityModal";
 import EnvironmentModal from "./components/EnvironmentModal";
+import CollectionModal from "./components/CollectionModal";
 
 const uid = () => crypto.randomUUID();
 const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "application/json", enabled: true }];
@@ -364,6 +365,6 @@ export default function App() {
     {showEnvironmentModal && <EnvironmentModal initial={editingEnvironment} onClose={() => setShowEnvironmentModal(false)} onSave={saveEnvironment} onDelete={deleteEnvironment} />}
     {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
     {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
-    {showNew && <div className="modal-backdrop" onClick={()=>setShowNew(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title"><b>Create a collection</b><button onClick={()=>setShowNew(false)}><X size={16}/></button></div><p>Give your requests a home.</p><input value={collectionName} onChange={e=>setCollectionName(e.target.value)} placeholder="Collection name"/><button className="send-button modal-submit" onClick={createCollection}>Create collection</button></div></div>}
+    {showNew && <CollectionModal value={collectionName} onChange={setCollectionName} onClose={()=>setShowNew(false)} onCreate={createCollection} />}
   </div>;
 }
