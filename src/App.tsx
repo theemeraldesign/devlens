@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, Settings2, ShieldCheck, Sun, X } from "lucide-react";
 import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type HttpMethod } from "./lib/request";
 import { readGuestCollections, writeGuestCollections, type LocalCollection } from "./lib/workspace";
-import { readGuestEnvironments, resolveEnvironmentVariables, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
+import { readActiveEnvironmentId, readGuestEnvironments, resolveEnvironmentVariables, writeActiveEnvironmentId, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
 import { redactUrl, safeSavedHeaders } from "./lib/utilities";
 import { supabase } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
@@ -33,7 +33,7 @@ export default function App() {
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(() => readGuestCollections()[0]?.id ?? null);
   const [collectionName, setCollectionName] = useState(() => readGuestCollections()[0]?.name ?? "My workspace");
   const [environments, setEnvironments] = useState<LocalEnvironment[]>(() => readGuestEnvironments());
-  const [activeEnvironmentId, setActiveEnvironmentId] = useState<string | null>(() => readGuestEnvironments()[0]?.id ?? null);
+  const [activeEnvironmentId, setActiveEnvironmentId] = useState<string | null>(() => readActiveEnvironmentId(readGuestEnvironments()));
   const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
   const [editingEnvironment, setEditingEnvironment] = useState<LocalEnvironment | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -79,6 +79,7 @@ export default function App() {
     setEnvironments(next);
     writeGuestEnvironments(next);
     setActiveEnvironmentId(environment.id);
+    writeActiveEnvironmentId(environment.id);
     setShowEnvironmentModal(false);
     setEditingEnvironment(null);
   }
@@ -86,7 +87,7 @@ export default function App() {
     const next = environments.filter(environment => environment.id !== id);
     setEnvironments(next);
     writeGuestEnvironments(next);
-    if (activeEnvironmentId === id) setActiveEnvironmentId(next[0]?.id ?? null);
+    if (activeEnvironmentId === id) { setActiveEnvironmentId(next[0]?.id ?? null); writeActiveEnvironmentId(next[0]?.id ?? null); }
     setShowEnvironmentModal(false);
     setEditingEnvironment(null);
   }
@@ -183,7 +184,7 @@ export default function App() {
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
-      {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>setActiveEnvironmentId(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
+      {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveEnvironmentId(environment.id);writeActiveEnvironmentId(environment.id);}}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
       {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map((url,index)=><button key={url+index} onClick={()=>updateRequest({url})}>{url}</button>) : <button disabled>No requests yet</button>}</div>}
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
