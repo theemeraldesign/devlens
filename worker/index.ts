@@ -3,6 +3,7 @@ interface Env {
   MAX_REQUEST_BYTES: string;
   MAX_RESPONSE_BYTES: string;
   REQUEST_TIMEOUT_MS: string;
+  API_RATE_LIMITER: RateLimit;
 }
 
 type ProxyInput = {
@@ -94,6 +95,12 @@ async function readLimitedBody(request: Request, limit: number): Promise<string>
 }
 
 async function proxy(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get("cf-connecting-ip") || "local";
+  const clientId = request.headers.get("x-devlens-client-id") || "anonymous";
+  const safeClientId = clientId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 64) || "anonymous";
+  const allowance = await env.API_RATE_LIMITER.limit({ key: `${ip}:${safeClientId}` });
+  if (!allowance.success) return json({ error: "Request limit reached. Wait one minute and try again." }, 429);
+
   const requestLimit = Number(env.MAX_REQUEST_BYTES || 1048576);
   const declaredLength = Number(request.headers.get("content-length") || 0);
   if (declaredLength > requestLimit) return json({ error: "Request payload is too large." }, 413);
