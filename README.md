@@ -10,8 +10,9 @@ The first application foundation is in place:
 - Responsive request studio with seven HTTP methods.
 - Query parameters, editable headers, request body and authentication-type selector.
 - Response status, duration, size, pretty/raw body and response headers.
-- Guest collections and saved requests stored in the browser.
-- Email/password account flow through Supabase Auth.
+- Guest collections, saved requests and private environments stored in the browser.
+- Environment variable interpolation in URLs, headers, query parameters and request bodies.
+- Email/password account flow through Supabase Auth, with cloud collection and environment sync.
 - Guest-to-account collection import. Local copies are retained after import.
 - Initial developer utilities: JSON formatting, JWT decoding, Base64, URL encoding, UUID generation and cURL export helpers.
 - Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks.
@@ -55,7 +56,7 @@ npm run test:e2e
 
 ## Database
 
-Migrations live in `supabase/migrations`. The initial schema is applied to the dedicated DevLens Supabase project. All private tables have RLS enabled. Public visitors only receive rows from the separate public snapshot table.
+Migrations live in `supabase/migrations`. The initial schema is applied to the dedicated DevLens Supabase project. All private tables have RLS enabled. Public visitors only receive the restricted `public_collections` view. Anonymous clients cannot write public snapshots or read owner and collection IDs.
 
 ## Deployment
 
