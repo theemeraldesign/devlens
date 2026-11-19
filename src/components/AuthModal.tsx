@@ -16,7 +16,7 @@ export default function AuthModal({ onClose, onAuthenticated }: Props) {
 
   async function submit() {
     if (!supabase) {
-      setMessage("Cloud sync is not configured yet. Guest mode remains available.");
+      setMessage("Account services are not configured yet. Please try again later.");
       return;
     }
     if (!email.trim() || password.length < 8) {
