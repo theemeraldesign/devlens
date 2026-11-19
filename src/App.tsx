@@ -73,25 +73,44 @@ export default function App() {
     }
   }
 
+  async function syncCloudEnvironments(userId: string) {
+    if (!supabase) return;
+    const { data, error: syncError } = await supabase.from("environments").select("id,guest_id,name,variables,updated_at,is_active").order("updated_at", { ascending: false });
+    if (syncError) { setAccountNotice(syncError.message); return; }
+    const cloud = (data || []).map(row => {
+      const variables = row.variables && typeof row.variables === "object" ? Object.entries(row.variables as Record<string,string>).map(([key,value]) => ({ id: uid(), key, value: String(value), enabled: true })) : [];
+      return { id: row.guest_id || row.id, name: row.name, variables, updatedAt: row.updated_at } as LocalEnvironment;
+    });
+    const local = readGuestEnvironments();
+    const cloudIds = new Set(cloud.map(item => item.id));
+    const merged = [...cloud, ...local.filter(item => !cloudIds.has(item.id))];
+    setEnvironments(merged);
+    writeGuestEnvironments(merged);
+    const active = data?.find(row => row.is_active);
+    const nextActiveId = active ? (active.guest_id || active.id) : readActiveEnvironmentId(merged);
+    setActiveEnvironmentId(nextActiveId);
+    writeActiveEnvironmentId(nextActiveId);
+  }
+
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
-      if (user) { void syncCloudCollections(user.id); if ((collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
+      if (user) { void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); if ((collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
-      if (session?.user) { void syncCloudCollections(session.user.id); if ((collections.length || environments.length) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
+      if (session?.user) { void syncCloudCollections(session.user.id); void syncCloudEnvironments(session.user.id); if ((collections.length || environments.length) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
       if (!session) setShowImportPrompt(false);
     });
     return () => subscription.unsubscribe();
   }, []);
 
   const activeEnvironment = environments.find(environment => environment.id === activeEnvironmentId);
-  function saveEnvironment(environment: LocalEnvironment) {
+  async function saveEnvironment(environment: LocalEnvironment) {
     const next = environments.some(item => item.id === environment.id)
       ? environments.map(item => item.id === environment.id ? environment : item)
       : [environment, ...environments];
@@ -101,14 +120,38 @@ export default function App() {
     writeActiveEnvironmentId(environment.id);
     setShowEnvironmentModal(false);
     setEditingEnvironment(null);
+    if (supabase && accountId) {
+      const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
+      if (deactivateError) { setAccountNotice(deactivateError.message); return; }
+      const variables = Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value]));
+      const { error: saveError } = await supabase.from("environments").upsert({
+        id: environment.id, owner_id: accountId, guest_id: environment.id,
+        name: environment.name, variables, is_active: true
+      }, { onConflict: "owner_id,guest_id" });
+      if (saveError) setAccountNotice(saveError.message);
+    }
   }
-  function deleteEnvironment(id: string) {
+  async function deleteEnvironment(id: string) {
     const next = environments.filter(environment => environment.id !== id);
     setEnvironments(next);
     writeGuestEnvironments(next);
     if (activeEnvironmentId === id) { setActiveEnvironmentId(next[0]?.id ?? null); writeActiveEnvironmentId(next[0]?.id ?? null); }
     setShowEnvironmentModal(false);
     setEditingEnvironment(null);
+    if (supabase && accountId) {
+      const { error: deleteError } = await supabase.from("environments").delete().eq("owner_id", accountId).eq("guest_id", id);
+      if (deleteError) setAccountNotice(deleteError.message);
+    }
+  }
+
+  async function activateEnvironment(id: string) {
+    setActiveEnvironmentId(id);
+    writeActiveEnvironmentId(id);
+    if (!supabase || !accountId) return;
+    const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
+    if (deactivateError) { setAccountNotice(deactivateError.message); return; }
+    const { error: activateError } = await supabase.from("environments").update({ is_active: true }).eq("owner_id", accountId).eq("guest_id", id);
+    if (activateError) setAccountNotice(activateError.message);
   }
 
   const prettyBody = useMemo(() => {
@@ -165,12 +208,15 @@ export default function App() {
       if (importError) { setAccountNotice(importError.message); return; }
     }
     if (environments.length) {
+      const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
+      if (deactivateError) { setAccountNotice(deactivateError.message); return; }
       const rows = environments.map(environment => ({
+        id: environment.id,
         owner_id: accountId,
         guest_id: environment.id,
         name: environment.name,
         variables: Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value])),
-        is_active: false
+        is_active: environment.id === activeEnvironmentId
       }));
       const { error: importError } = await supabase.from("environments").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
       if (importError) { setAccountNotice(importError.message); return; }
@@ -220,7 +266,7 @@ export default function App() {
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
-      {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveEnvironmentId(environment.id);writeActiveEnvironmentId(environment.id);}}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
+      {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
       {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map((url,index)=><button key={url+index} onClick={()=>updateRequest({url})}>{url}</button>) : <button disabled>No requests yet</button>}</div>}
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
