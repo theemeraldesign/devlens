@@ -64,7 +64,7 @@ Migrations live in `supabase/migrations`. The initial schema is applied to the d
 
 ## Deployment
 
-Cloudflare Worker configuration lives in `wrangler.jsonc`. The manual GitHub Actions deployment workflow is documented in [Cloudflare deployment](docs/DEPLOYMENT.md). Production API proxy traffic remains gated on a complete SSRF/egress security review.
+Cloudflare Worker configuration lives in `wrangler.jsonc`. The manual GitHub Actions deployment workflow is documented in [Cloudflare deployment](docs/DEPLOYMENT.md). Production API proxy traffic remains gated on a complete SSRF/egress security review. See [the security review](docs/SECURITY.md) for the threat model and current release blockers.
 
 ## License
 
