@@ -374,3 +374,87 @@
 .folder-art:hover>div svg:nth-child(1),.folder-art.open>div svg:nth-child(1){transform:translate(-15px,-10px) rotate(-15deg)}
 .folder-art:hover>div svg:nth-child(2),.folder-art.open>div svg:nth-child(2){transform:translateY(-18px) rotate(0)}
 .folder-art:hover>div svg:nth-child(3),.folder-art.open>div svg:nth-child(3){transform:translate(15px,-10px) rotate(15deg)}
+
+
+/* Public landing-page authentication modal. The landing page is rendered outside
+   .app, so it must not depend on workspace-scoped theme variables. */
+.landing-page + .modal-backdrop{
+  --panel:#171d26;
+  --panel2:#1b222d;
+  --line:#354151;
+  --muted:#a5b0bf;
+  --text:#f1f4f8;
+  --accent:#e3a15f;
+  color:var(--text);
+  z-index:20;
+  background:rgba(4,8,14,.82);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+}
+.landing-page + .modal-backdrop .auth-modal{
+  width:min(440px,100%);
+  max-height:min(90dvh,720px);
+  overflow-y:auto;
+  padding:clamp(22px,5vw,30px);
+  color:var(--text);
+  background:#171d26;
+  border:1px solid #354151;
+  border-radius:16px;
+  box-shadow:0 28px 100px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.025);
+}
+.landing-page + .modal-backdrop .auth-modal .modal-title b{
+  color:#f4f6fa;
+  font:600 17px/1.35 "DM Sans",sans-serif;
+  letter-spacing:-.35px;
+}
+.landing-page + .modal-backdrop .auth-modal .modal-title button{
+  width:34px;height:34px;display:grid;place-items:center;
+  border:1px solid #354151;border-radius:8px;
+  background:#202936;color:#c1cad6;cursor:pointer;
+}
+.landing-page + .modal-backdrop .auth-modal .modal-title button:hover{
+  background:#2a3544;color:#fff;
+}
+.landing-page + .modal-backdrop .auth-modal>p{
+  margin:10px 0 23px;
+  color:#a5b0bf;
+  font:400 12px/1.7 "DM Sans",sans-serif;
+}
+.landing-page + .modal-backdrop .auth-modal>label{
+  display:block;margin:15px 0 7px;
+  color:#c5ced9;font:500 10px/1.4 "DM Mono",monospace;
+  letter-spacing:.55px;
+}
+.landing-page + .modal-backdrop .auth-modal>input{
+  display:block;width:100%;height:46px;margin:0;
+  padding:0 13px;border:1px solid #3b4757;border-radius:8px;
+  background:#0f151e;color:#f4f6fa;
+  font:400 13px "DM Sans",sans-serif;
+  outline:none;box-shadow:inset 0 1px 2px rgba(0,0,0,.18);
+  color-scheme:dark;
+}
+.landing-page + .modal-backdrop .auth-modal>input::placeholder{color:#788596;opacity:1}
+.landing-page + .modal-backdrop .auth-modal>input:hover{border-color:#536174}
+.landing-page + .modal-backdrop .auth-modal>input:focus{
+  border-color:#e3a15f;box-shadow:0 0 0 3px rgba(227,161,95,.16);
+}
+.landing-page + .modal-backdrop .auth-modal .modal-submit{
+  min-height:46px;margin-top:21px;border-radius:8px;
+  background:#d98f50;color:#17120d;
+  font:700 12px "DM Sans",sans-serif;
+  box-shadow:0 7px 20px rgba(217,143,80,.18);
+}
+.landing-page + .modal-backdrop .auth-modal .modal-submit:hover:not(:disabled){background:#eda96b}
+.landing-page + .modal-backdrop .auth-modal .auth-switch{
+  min-height:38px;padding:13px 4px 0;
+  color:#efb77f;font:500 11px "DM Sans",sans-serif;
+}
+.landing-page + .modal-backdrop .auth-modal .auth-switch:hover{color:#ffd0a2;text-decoration:underline}
+.landing-page + .modal-backdrop .auth-modal .auth-message{
+  background:#202936;border:1px solid #3b4757;color:#d6deea;
+  font:400 11px/1.55 "DM Sans",sans-serif;
+}
+@media(max-width:520px){
+  .landing-page + .modal-backdrop{padding:14px;align-items:center}
+  .landing-page + .modal-backdrop .auth-modal{padding:22px 19px;border-radius:14px}
+}
