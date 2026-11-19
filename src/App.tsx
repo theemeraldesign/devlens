@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, ShieldCheck, Sun, X, Download, UserRound, Menu, ChevronRight } from "lucide-react";
+import { Activity, ArrowDown, Bookmark, Braces, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, ShieldCheck, Sun, X, Download, UserRound, Menu, ChevronRight } from "lucide-react";
 import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type HttpMethod } from "./lib/request";
 import { readGuestCollections, writeGuestCollections, type LocalCollection, type SavedRequest } from "./lib/workspace";
 import { readActiveEnvironmentId, readGuestEnvironments, resolveEnvironmentVariables, writeActiveEnvironmentId, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
