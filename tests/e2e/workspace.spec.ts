@@ -266,7 +266,8 @@ test("uses separate responsive screens and a visible brand on Android", async ({
 test("selects files for multipart form-data requests", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Body" }).click();
-  await page.locator("#body-type").selectOption("formdata");
+  await page.locator("#body-type").click();
+  await page.getByRole("option", { name: "Form data" }).click();
   await page.getByLabel("File field name").fill("avatar");
   await page.getByLabel("Upload files").setInputFiles({ name: "avatar.txt", mimeType: "text/plain", buffer: Buffer.from("sample upload") });
   await expect(page.locator(".formdata-file")).toContainText("avatar.txt");
