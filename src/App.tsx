@@ -298,9 +298,9 @@ export default function App() {
   return <div className={dark ? "app dark" : "app light"}>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Activity size={18} strokeWidth={2.4}/></div><span>dev<span className="brand-accent">lens</span></span><span className="beta">BETA</span></div>
-      <button className="workspace-switch"><div className="workspace-avatar">M</div><span><b>{collectionName}</b><small>Personal workspace</small></span><ChevronDown size={15}/></button>
+      <div className="workspace-switch"><div className="workspace-avatar">M</div><span><b>{collectionName}</b><small>Personal workspace</small></span><ChevronDown size={15}/></div>
       <div className="side-label">WORKSPACE</div>
-      <nav className="side-nav">
+      <nav className="side-nav" aria-label="Primary workspace navigation">
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
@@ -318,10 +318,10 @@ export default function App() {
       </div>
     </aside>
 
-    <main className="main">
-      <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><b>{activeNav}</b></div><div className="top-actions"><span className="connection"><i/> All systems operational</span><button className="icon-button" title="Settings"><Settings2 size={17}/></button><button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><button className="upgrade-button" onClick={()=>setShowNew(true)}><Plus size={15}/> New collection</button></div></header>
+    <main className="main" id="request-workspace">
+      <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><b>{activeNav}</b></div><div className="top-actions"><span className="connection"><i/> Workspace ready</span><button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><button className="upgrade-button" onClick={()=>setShowNew(true)}><Plus size={15}/> New collection</button></div></header>
 
-      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> API WORKSPACE <span className="eyebrow-line"/></div><h1>Request studio<span>.</span></h1><p>Build, send and inspect HTTP requests with clarity.</p></div><div className="heading-meta"><span className="live-dot"/> {accountEmail ? "Account" : "Guest mode"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"} <span className="meta-divider"/> <kbd>⌘</kbd><kbd>K</kbd></div></section>
+      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> API WORKSPACE <span className="eyebrow-line"/></div><h1>Request studio<span>.</span></h1><p>Build, send and inspect HTTP requests with clarity.</p></div><div className="heading-meta"><span className="live-dot"/> {accountEmail ? "Account" : "Guest mode"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"}</div></section>
       {showImportPrompt && <div className="import-banner"><div><b>Guest workspace data found</b><span>Import {collections.filter(item => !item.cloudOwnerId).length} collection(s) and {environments.filter(item => !item.cloudOwnerId).length} environment(s) into your account. Local copies will stay on this device.</span></div><button onClick={importGuestData}>Import guest data</button><button className="dismiss-import" onClick={() => setShowImportPrompt(false)} aria-label="Dismiss"><X size={14}/></button></div>}
       {accountNotice && <div className="import-banner"><span>{accountNotice}</span><button className="dismiss-import" onClick={() => setAccountNotice("")} aria-label="Dismiss"><X size={14}/></button></div>}
 
