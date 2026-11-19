@@ -200,35 +200,141 @@ export function importCurl(command: string): ImportedCurlRequest {
   return { method, url: parsed.toString(), headers, body };
 }
 
-/** Format XML for readable inspection without changing its document content. */
+export type JsonDiffEntry = { path: string; before: unknown; after: unknown };
+
+export function diffJson(before: unknown, after: unknown, path = "$"): JsonDiffEntry[] {
+  if (JSON.stringify(before) === JSON.stringify(after)) return [];
+  if (before && after && typeof before === "object" && typeof after === "object" && !Array.isArray(before) && !Array.isArray(after)) {
+    const left = before as Record<string, unknown>;
+    const right = after as Record<string, unknown>;
+    return [...new Set([...Object.keys(left), ...Object.keys(right)])].flatMap(key => diffJson(left[key], right[key], path + "." + key));
+  }
+  return [{ path, before: before ?? null, after: after ?? null }];
+}
+
+type XmlTextNode = { kind: "text"; value: string };
+type XmlRawNode = { kind: "raw"; value: string };
+type XmlElementNode = { kind: "element"; name: string; open: string; close: string; selfClosing: boolean; children: XmlNode[] };
+type XmlNode = XmlTextNode | XmlRawNode | XmlElementNode;
+
+function findXmlMarkupEnd(source: string, start: number): number {
+  let quote: string | null = null;
+  let subsetDepth = 0;
+  for (let index = start + 1; index < source.length; index++) {
+    const char = source[index];
+    if (quote) {
+      if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "\"" || char === "'") { quote = char; continue; }
+    if (char === "[") { subsetDepth++; continue; }
+    if (char === "]" && subsetDepth > 0) { subsetDepth--; continue; }
+    if (char === ">" && subsetDepth === 0) return index + 1;
+  }
+  throw new Error("The XML response contains an unfinished tag or declaration.");
+}
+
+function inlineXml(node: XmlNode): string {
+  if (node.kind === "text" || node.kind === "raw") return node.value;
+  return node.open + node.children.map(inlineXml).join("") + node.close;
+}
+
+/** Indent XML while preserving mixed-content text and CDATA exactly. */
 export function prettyXml(source: string): string {
   const input = source.trim();
   if (!input) return "";
-  const tokens = input.match(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>|<!DOCTYPE[^>]*>|<[^>]+>|[^<]+/gi);
-  if (!tokens) throw new Error("The XML response could not be formatted.");
-  const lines: string[] = [];
-  const stack: string[] = [];
-  const indent = () => "  ".repeat(stack.length);
-  for (const token of tokens) {
-    const value = token.trim();
-    if (!value) continue;
-    if (/^<\//.test(value)) {
-      const name = value.match(/^<\/\s*([^\s>]+)/)?.[1];
-      if (!name || stack[stack.length - 1] !== name) throw new Error("The XML response contains mismatched closing tags.");
-      stack.pop();
-      lines.push(indent() + value);
-    } else if (/^<[^!?][^>]*\/>$/.test(value)) {
-      lines.push(indent() + value);
-    } else if (/^<[^!?][^>]*>$/.test(value)) {
-      lines.push(indent() + value);
-      const name = value.match(/^<\s*([^\s/>]+)/)?.[1];
-      if (name) stack.push(name);
-    } else if (/^<\?|^<!/.test(value)) {
-      lines.push(indent() + value);
-    } else {
-      lines.push(indent() + value);
+  const documentNodes: XmlNode[] = [];
+  const stack: XmlElementNode[] = [];
+  let cursor = 0;
+  let rootCount = 0;
+  const append = (node: XmlNode) => {
+    if (stack.length) stack[stack.length - 1].children.push(node);
+    else documentNodes.push(node);
+  };
+  const readDelimited = (start: number, ending: string, message: string) => {
+    const end = input.indexOf(ending, start);
+    if (end < 0) throw new Error(message);
+    return end + ending.length;
+  };
+
+  while (cursor < input.length) {
+    if (input[cursor] !== "<") {
+      const next = input.indexOf("<", cursor);
+      const end = next < 0 ? input.length : next;
+      const value = input.slice(cursor, end);
+      if (!stack.length && value.trim()) throw new Error("The XML response contains text outside its root element.");
+      append({ kind: "text", value });
+      cursor = end;
+      continue;
     }
+    if (input.startsWith("<!--", cursor)) {
+      const end = readDelimited(cursor, "-->", "The XML response contains an unfinished comment.");
+      append({ kind: "raw", value: input.slice(cursor, end) });
+      cursor = end;
+      continue;
+    }
+    if (input.startsWith("<![CDATA[", cursor)) {
+      const end = readDelimited(cursor, "]]>", "The XML response contains an unfinished CDATA section.");
+      append({ kind: "raw", value: input.slice(cursor, end) });
+      cursor = end;
+      continue;
+    }
+    if (input.startsWith("<?", cursor)) {
+      const end = readDelimited(cursor, "?>", "The XML response contains an unfinished processing instruction.");
+      append({ kind: "raw", value: input.slice(cursor, end) });
+      cursor = end;
+      continue;
+    }
+
+    const end = findXmlMarkupEnd(input, cursor);
+    const markup = input.slice(cursor, end);
+    if (markup.startsWith("</")) {
+      const name = markup.match(/^<\/\s*([^\s>]+)\s*>$/)?.[1];
+      const current = stack.pop();
+      if (!name || !current || current.name !== name) throw new Error("The XML response contains mismatched closing tags.");
+      current.close = markup;
+      cursor = end;
+      continue;
+    }
+    if (markup.startsWith("<!")) {
+      append({ kind: "raw", value: markup });
+      cursor = end;
+      continue;
+    }
+
+    const name = markup.match(/^<\s*([^\s/>]+)/)?.[1];
+    if (!name) throw new Error("The XML response contains an invalid opening tag.");
+    const selfClosing = /\/\s*>$/.test(markup);
+    const element: XmlElementNode = { kind: "element", name, open: markup, close: "", selfClosing, children: [] };
+    if (!stack.length) rootCount++;
+    append(element);
+    if (!selfClosing) stack.push(element);
+    cursor = end;
   }
+
   if (stack.length) throw new Error("The XML response contains unclosed tags.");
-  return lines.join("\n");
+  if (rootCount !== 1) throw new Error("The XML response must contain exactly one root element.");
+
+  const render = (node: XmlNode, depth: number, inheritedPreserve = false): string => {
+    const indent = "  ".repeat(depth);
+    if (node.kind === "raw") return indent + node.value;
+    if (node.kind === "text") return node.value.trim() ? indent + node.value : "";
+    if (node.selfClosing) return indent + node.open;
+    const spaceMode = node.open.match(/\bxml:space\s*=\s*(['"])(.*?)\1/i)?.[2];
+    const preserve = spaceMode ? spaceMode === "preserve" : inheritedPreserve;
+    if (!node.children.length) return indent + node.open + node.close;
+
+    const hasElementChild = node.children.some(child => child.kind === "element");
+    const hasSignificantText = node.children.some(child => child.kind === "text" && child.value.trim() !== "")
+      || node.children.some(child => child.kind === "raw" && child.value.startsWith("<![CDATA["));
+    if (!hasElementChild || hasSignificantText || preserve) return indent + inlineXml(node);
+
+    const children = node.children
+      .filter(child => !(child.kind === "text" && !child.value.trim()))
+      .map(child => render(child, depth + 1, preserve))
+      .filter(Boolean);
+    return indent + node.open + "\n" + children.join("\n") + "\n" + indent + node.close;
+  };
+
+  return documentNodes.map(node => render(node, 0)).filter(Boolean).join("\n");
 }
