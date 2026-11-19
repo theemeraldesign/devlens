@@ -1,72 +1,156 @@
+<div align="center">
+
 # DevLens
 
-> See your APIs clearly.
+### Make every API make sense.
 
-DevLens is an API development studio for composing HTTP requests, inspecting responses, organising collections, and managing environments.
+A focused API development studio for building HTTP requests, inspecting responses, and organising API work in one secure workspace.
 
-## Product experience
+<p>
+  <a href="https://devlens.cc.cd"><strong>Open DevLens ↗</strong></a> &nbsp;·&nbsp; <a href="https://github.com/theemeraldesign/devlens">Source code</a> &nbsp;·&nbsp; <a href="https://github.com/theemeraldesign/devlens/issues">Report an issue</a>
+</p>
 
-- Public product landing page with a responsive workspace preview, reduced-motion support, feature overview, security notes, and footer.
-- Account-required workspace. Sign up or sign in before accessing request tools.
-- Supabase email/password authentication, password recovery, and password update.
-- Private account collections, saved requests, environments, and redacted request history.
-- Public, read-only collection links with server-side sanitisation, import, and unpublish.
-- Legacy local workspace data import for users who created data before account-only access.
+<p>
+  <a href="https://devlens.cc.cd"><img src="https://img.shields.io/badge/Live-devlens.cc.cd-e3a15f?style=for-the-badge&logo=cloudflare&logoColor=111827" alt="Live on devlens.cc.cd"/></a>
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=111827" alt="React 19"/>
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers"/>
+  <img src="https://img.shields.io/badge/Supabase-Auth%20%26%20Postgres-3FCF8E?style=for-the-badge&logo=supabase&logoColor=111827" alt="Supabase"/>
+</p>
 
-## Request studio
+</div>
 
-- Seven HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS.
-- URL, query parameters, editable headers, request authentication, and JSON, text, URL-encoded, or multipart bodies.
-- Multipart text fields and file attachments. Browser file uploads are limited to 10 MB total and require the target API to allow CORS.
-- Response status, duration, size, headers, pretty/raw body, XML indentation, and JSON/XML/text downloads.
-- Cancel and resend requests.
-- Environment variable interpolation in URLs, headers, query parameters, and request bodies.
+---
 
-## Developer tools
+## Product preview
 
-- JSON formatting and diff, plus XML formatting that preserves mixed content.
-- JWT header/payload inspection. Decoding does not verify signatures.
-- Base64 and URL encode/decode.
-- UUID generation.
-- cURL import/export with shell operator and command substitution rejection.
+The screenshots below are captured from the live production application using a dedicated test account. Demo data is used. Account identifiers and private values are masked.
 
-## Network and security
+<div align="center">
+  <a href="docs/screenshots/landing-desktop.png">
+    <img src="docs/screenshots/landing-desktop.png" width="100%" alt="DevLens public landing page"/>
+  </a>
+  <br/>
+  <sub>Public landing page · Desktop</sub>
+</div>
 
-Authenticated text-based API requests use the DevLens secure egress gateway. The Cloudflare Worker validates the Supabase session, applies per-IP and per-user rate limits, and signs the request envelope. A separate Vercel gateway verifies the HMAC signature and uses `guarded-fetch` for public-destination checks, DNS-rebinding-resistant connection pinning, request-header sanitisation, and redirect blocking.
+<details open>
+  <summary><strong>Workspace and response inspector</strong></summary>
+  <br/>
+  <div align="center">
+    <img src="docs/screenshots/workspace-desktop.png" width="100%" alt="DevLens request workspace on desktop"/>
+    <br/><sub>Request studio · Desktop</sub>
+    <br/><br/>
+    <img src="docs/screenshots/response-inspector.png" width="100%" alt="DevLens response inspector showing a formatted JSON response"/>
+    <br/><sub>Response inspector · Pretty JSON, status, timing and headers</sub>
+  </div>
+</details>
 
-The gateway caps request bodies at 2 MB, response bodies at 5 MB, and request duration at 20 seconds. Response cookies are not returned to the browser. The gateway rejects private, loopback, link-local, metadata, and reserved network destinations. It blocks redirects; send the request to the final destination directly.
+<details>
+  <summary><strong>Collections, environments and sharing</strong></summary>
+  <br/>
+  <div align="center">
+    <img src="docs/screenshots/collections-desktop.png" width="100%" alt="DevLens API collections"/>
+    <br/><sub>Saved collections and requests</sub>
+    <br/><br/>
+    <img src="docs/screenshots/environments-desktop.png" width="100%" alt="DevLens environment variables"/>
+    <br/><sub>Environment variables · Demo values only</sub>
+    <br/><br/>
+    <img src="docs/screenshots/shared-collection.png" width="100%" alt="DevLens public read-only collection"/>
+    <br/><sub>Read-only public collection</sub>
+  </div>
+</details>
 
-Multipart file uploads stay in the browser because browser File objects are not sent through the JSON gateway. Those uploads require the target API to allow CORS from the DevLens origin.
+<details>
+  <summary><strong>Developer utilities and mobile workspace</strong></summary>
+  <br/>
+  <div align="center">
+    <img src="docs/screenshots/utilities.png" width="100%" alt="DevLens developer utilities"/>
+    <br/><sub>Developer utilities</sub>
+    <br/><br/>
+    <img src="docs/screenshots/workspace-mobile.png" width="390" alt="DevLens workspace on a mobile screen"/>
+    <br/><sub>Responsive workspace · Mobile</sub>
+  </div>
+</details>
 
-DevLens does not store API credentials in public collection snapshots. Request history stores redacted metadata, not request or response bodies.
+---
 
-## Stack
+## What you can do
 
-- React, Vite, TypeScript
-- Tailwind CSS
-- Cloudflare Workers and Static Assets
-- Vercel serverless egress gateway
-- Supabase Auth and PostgreSQL
-- Vitest and Playwright
+| Workspace | Capabilities |
+|:--|:--|
+| Request studio | Compose GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS requests. Edit query parameters, headers, authentication and request bodies. |
+| Collections | Save, organise, duplicate, rename, import and export API requests. |
+| Environments | Store reusable variables and interpolate them into URLs, headers, parameters and bodies. |
+| Response inspector | Inspect status, duration, size and headers. Switch between pretty and raw output. Format XML and download JSON, XML or text responses. |
+| Request history | Review synced request metadata with sensitive URL values redacted. |
+| Sharing | Publish read-only collections, share a link, import a shared collection and unpublish it. |
+| Developer utilities | Format and diff JSON, format XML, inspect JWT payloads, encode/decode Base64 and URLs, generate UUIDs, and import/export cURL. |
 
-## Local development
+## Security architecture
 
-Requirements: Node.js 22.23.4 or later in the 22.x line.
+DevLens routes authenticated text-based API requests through a dedicated server-side egress gateway.
+
+```mermaid
+flowchart LR
+    A[Browser workspace] --> B[Cloudflare Worker]
+    B --> C[Supabase Auth]
+    B -->|Signed request · HMAC| D[Vercel egress gateway]
+    D --> E[Destination API]
+    E --> D
+    D --> B
+    B --> A
+```
+
+- The Worker validates the Supabase session and applies per-IP and per-user rate limits.
+- HMAC signatures and timestamps authenticate requests between the Worker and gateway.
+- The gateway uses guarded outbound fetching, DNS checks and connection-time IP pinning to reduce SSRF and DNS-rebinding risks.
+- Private, loopback, link-local, metadata and reserved network destinations are blocked.
+- Redirects are blocked. Send requests to the final destination directly.
+- Request and response sizes, duration and response headers are capped.
+- Cookies are stripped from gateway responses.
+- Request history stores redacted metadata, not request or response bodies.
+- Public collection pages expose sanitised, read-only snapshots.
+
+Browser-based multipart file uploads remain subject to the destination API CORS policy. APIs that reject browser CORS need a compatible server-side request path. See the [security model](docs/SECURITY.md) for exact boundaries and limitations.
+
+## Built with
+
+| Layer | Technologies |
+|:--|:--|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Edge and hosting | Cloudflare Workers and Static Assets |
+| Secure egress | Vercel serverless functions, guarded-fetch |
+| Auth and data | Supabase Auth, PostgreSQL, Row Level Security |
+| Quality | Vitest, Playwright, GitHub Actions |
+
+## Run locally
+
+### Requirements
+
+- Node.js 22.23.4 or later in the 22.x line
+- npm
+
+### Setup
 
 ```bash
+git clone https://github.com/theemeraldesign/devlens.git
+cd devlens
 npm install
 cp .env.example .env.local
 npm run dev
 ```
 
-Set these values in `.env.local`:
+Set the following public client configuration in `.env.local`:
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
 
-The publishable key is designed for browser use. Never expose a Supabase secret or service-role key in client code.
+Never place a Supabase secret or service-role key in browser code.
 
-## Checks
+### Quality checks
 
 ```bash
 npm run typecheck
@@ -75,9 +159,12 @@ npm run build
 npm run test:e2e
 ```
 
-Authenticated Playwright workspace tests require the GitHub Actions secrets `DEVLENS_E2E_EMAIL` and `DEVLENS_E2E_PASSWORD`, plus the two `VITE_SUPABASE_*` secrets. Use a dedicated, email-confirmed test account. Deployment also runs public checks and authenticated workspace tests against production.
+The authenticated Playwright suite requires a dedicated, email-confirmed test account:
 
-The egress gateway has its own test suite:
+- `DEVLENS_E2E_EMAIL`
+- `DEVLENS_E2E_PASSWORD`
+
+The secure egress gateway has a separate test suite:
 
 ```bash
 cd gateway
@@ -85,24 +172,24 @@ npm install
 npm test
 ```
 
-## Database and sharing
-
-Migrations live in `supabase/migrations`. Private tables use owner-scoped row-level security. Public visitors receive only the restricted `public_collections` view. Publishing runs through an authenticated Supabase Edge Function with server-side sanitisation. See [sharing security](docs/SHARING.md).
-
-## Deployment
-
-Cloudflare Worker configuration lives in `wrangler.jsonc`. GitHub Actions run typecheck, unit tests, production build, gateway tests, and Playwright checks before deployment. The Worker and static assets deploy to Cloudflare. The egress gateway deploys from the same repository to Vercel. See [deployment](docs/DEPLOYMENT.md) and [security](docs/SECURITY.md).
-
 ## Project documentation
 
-- [Setup guide](docs/SETUP.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Deployment](docs/DEPLOYMENT.md)
-- [Security model](docs/SECURITY.md)
-- [Public collection sharing](docs/SHARING.md)
-- [Completion roadmap](docs/ROADMAP.md)
-- [Production release record](docs/RELEASE.md)
-- [Portfolio screenshot capture guide](docs/SCREENSHOTS.md)
+| Document | Purpose |
+|:--|:--|
+| [Setup guide](docs/SETUP.md) | Local setup and configuration |
+| [Architecture](docs/ARCHITECTURE.md) | Application and service boundaries |
+| [Deployment](docs/DEPLOYMENT.md) | Cloudflare, Vercel and CI deployment |
+| [Security model](docs/SECURITY.md) | Authentication, egress controls and threat boundaries |
+| [Sharing security](docs/SHARING.md) | Public collection publishing and sanitisation |
+| [Completion roadmap](docs/ROADMAP.md) | Product scope and remaining work |
+| [Release record](docs/RELEASE.md) | Production verification and release notes |
+| [Screenshot guide](docs/SCREENSHOTS.md) | How production screenshots are refreshed |
+
+## Project status
+
+DevLens is live at **[devlens.cc.cd](https://devlens.cc.cd)**. Production CI verifies the build, unit tests, gateway tests, responsive browser flows, authentication-backed workspace operations and production routes.
+
+Production email delivery still depends on completing sender-domain verification and SMTP setup in Brevo. This does not prevent the deployed workspace from loading.
 
 ## License
 
