@@ -572,7 +572,12 @@ export default function App() {
     setRequest({ method: imported.method as HttpMethod, url: imported.url, headers, body: imported.body, bodyType });
     setParams([{ id: uid(), key: "", value: "", enabled: true }]);
     setAuthType("No authentication"); setAuthToken(""); setBasicUsername(""); setBasicPassword(""); setApiKeyValue("");
-    setResponse(null); setError(""); setActiveNav("Collections");
+    setResponse(null); setError("");
+    if (window.location.pathname !== "/") window.history.pushState({}, "", "/");
+    setCurrentPage("workspace");
+    setActiveNav("Collections");
+    setMobilePanel(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function cancelRequest() {
