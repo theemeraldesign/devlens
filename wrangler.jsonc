@@ -12,6 +12,9 @@
     "enabled": true,
     "traces": { "enabled": true }
   },
+  "ratelimits": [
+    { "name": "API_RATE_LIMITER", "namespace_id": "2026111901", "simple": { "limit": 60, "period": 60 } }
+  ],
   "vars": {
     "MAX_REQUEST_BYTES": "1048576",
     "MAX_RESPONSE_BYTES": "5242880",
