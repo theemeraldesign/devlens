@@ -267,7 +267,7 @@ export default function App() {
   }
 
   async function unpublishCollection(id: string) {
-    if (!supabase || !accountId) return;
+    if (!supabase || !accountId || !window.confirm("Stop sharing this collection? Its public link will stop working.")) return;
     const { data, error: unpublishError } = await supabase.functions.invoke("publish-collection", { body: { collectionId: id, action: "unpublish" } });
     if (unpublishError || data?.error) { setAccountNotice(unpublishError?.message || data.error); return; }
     setPublishedSlugs(current => { const next = { ...current }; delete next[id]; return next; });
