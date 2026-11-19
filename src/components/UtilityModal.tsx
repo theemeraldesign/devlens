@@ -15,8 +15,8 @@ function jsonDiff(before: unknown, after: unknown, path = "$"): Array<{ path: st
   return [{ path, before: before ?? null, after: after ?? null }];
 }
 
-export default function UtilityModal({
-  const dialogRef = useModalAccessibility(onClose); tool, onClose }: Props) {
+export default function UtilityModal({ tool, onClose }: Props) {
+  const dialogRef = useModalAccessibility(onClose);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
