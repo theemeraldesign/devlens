@@ -26,3 +26,17 @@ describe("public collection sanitization", () => {
     ] })).toEqual({ headers: [{ key: "Accept", value: "application/json" }] });
   });
 });
+
+import { redactUrl, safeSavedHeaders } from "./utilities";
+
+describe("sensitive request data handling", () => {
+  it("redacts secret query parameters before adding a URL to history", () => {
+    expect(redactUrl("https://api.example.com/items?api_key=private&page=2")).toBe("https://api.example.com/items?api_key=%5BREDACTED%5D&page=2");
+  });
+  it("does not persist credential headers in saved request definitions", () => {
+    expect(safeSavedHeaders([
+      { key: "Authorization", value: "Bearer private", enabled: true },
+      { key: "Accept", value: "application/json", enabled: true }
+    ])).toEqual([{ key: "Accept", value: "application/json", enabled: true }]);
+  });
+});
