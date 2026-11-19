@@ -35,3 +35,23 @@ export function resolveEnvironmentVariables(source: string, environment?: LocalE
   );
   return source.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key: string) => variables.get(key.trim()) ?? match);
 }
+
+const ACTIVE_STORAGE_KEY = "devlens.environments.active.v1";
+
+export function readActiveEnvironmentId(environments: LocalEnvironment[]): string | null {
+  try {
+    const stored = localStorage.getItem(ACTIVE_STORAGE_KEY);
+    return stored && environments.some(item => item.id === stored) ? stored : environments[0]?.id ?? null;
+  } catch {
+    return environments[0]?.id ?? null;
+  }
+}
+
+export function writeActiveEnvironmentId(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(ACTIVE_STORAGE_KEY, id);
+    else localStorage.removeItem(ACTIVE_STORAGE_KEY);
+  } catch {
+    // Environment data remains usable in the current session.
+  }
+}
