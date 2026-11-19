@@ -22,7 +22,7 @@ export async function sendRequest(request: ApiRequest, signal?: AbortSignal): Pr
   const response = await fetch("/api/proxy", {
     method: "POST",
     headers: { "content-type": "application/json", "x-devlens-client-id": getClientId() },
-    body: JSON.stringify({ method: request.method, url: request.url, headers, body: request.body }),
+    body: JSON.stringify({ method: request.method, url: request.url, headers, body: request.body, bodyType: request.bodyType }),
     signal
   });
   const payload = await response.json() as ApiResponse & { error?: string };
