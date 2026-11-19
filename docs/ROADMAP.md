@@ -17,7 +17,7 @@
 - [x] URL, query parameters, headers and body editor.
 - [x] Bearer, Basic and API-key request authentication.
 - [x] Response status, timing, size, body and headers.
-- [ ] Cancel in-flight requests and resend requests.
+- [x] Cancel in-flight requests and resend requests.
 - [ ] Multipart form data and URL-encoded body editors.
 - [ ] Environment variable interpolation.
 - [ ] Persist and search request history.
