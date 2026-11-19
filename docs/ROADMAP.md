@@ -1,42 +1,40 @@
-# Cloudflare deployment
+# DevLens completion roadmap
 
-The production deployment workflow runs on pushes to `main` and can also be started manually. It runs typecheck, unit tests, a production build, and browser checks before deploying the Worker and static assets. It then runs the public browser checks against `https://devlens.cc.cd`.
+This file is the release acceptance checklist. It separates implemented product behavior from checks that still depend on external account configuration.
 
-## GitHub repository secrets
+## Product and engineering checks
 
-Add these under Settings → Secrets and variables → Actions:
+| Area | Status | Acceptance check |
+|---|---|---|
+| Authentication | Implemented | Registration, sign-in, sign-out, password recovery and password update are in the app. Browser tests cover the account entry and recovery screens. Production email delivery still depends on verified SMTP. |
+| Cloud workspace | Implemented | Collections, saved requests, environments and redacted request history sync to owner-scoped Supabase tables. Collection and environment persistence are covered by authenticated browser checks. |
+| Sharing | Implemented | Publish, open, import and unpublish use the authenticated Edge Function and restricted public read view. An end-to-end flow is included in the release checks. |
+| Request studio | Implemented | HTTP methods, query parameters, headers, auth modes, JSON/text/url-encoded/form-data bodies, file selection, validation and cancellation are available. |
+| Response inspector | Implemented | Pretty JSON/XML/text, raw body, response headers, copy and download are available. JSON/XML response inspection and downloads are covered by browser tests. |
+| Utilities | Implemented | JSON formatter/diff, XML formatter, JWT inspector, Base64, URL encode/decode, UUID and cURL import/export have unit coverage. |
+| Security | Implemented | Worker authentication and rate limiting, signed gateway envelopes, guarded outbound fetch, SSRF protections, redirect blocking, sanitisation and bounded payloads are in place. |
+| Experience | In release checks | Responsive layouts, reduced-motion behavior, visible focus, modal keyboard handling and a workspace skip link are covered by browser checks. |
+| Portfolio documentation | In progress | README, setup, architecture, deployment, security, sharing and release records are maintained. Real product screenshots still need to be captured and added. |
 
-| Secret | Value |
-| --- | --- |
-| CLOUDFLARE_API_TOKEN | A Cloudflare API token scoped to the Projects Account with Workers Scripts: Edit and Account Settings: Read. The Cloudflare dashboard's Edit Cloudflare Workers token template is another supported starting point; restrict its account scope. |
-| CLOUDFLARE_ACCOUNT_ID | `c76cbb7dc13126491526912181cae743`. |
-| VITE_SUPABASE_URL | `https://ufptcrhuibihwzjbjhqc.supabase.co`. |
-| VITE_SUPABASE_PUBLISHABLE_KEY | The project's Supabase publishable key. Safe for browser use. |
-| DEVLENS_E2E_EMAIL | Email for a dedicated, confirmed Supabase test account. |
-| DEVLENS_E2E_PASSWORD | Password for that test account. |
+## External account work
 
-Do not add a Supabase secret or service-role key to GitHub Actions or the browser build. The publishing Edge Function uses the service-role key supplied by Supabase's managed runtime. The CI workflow uses the VITE keys and optional test-account secrets to run account-backed workspace tests. Keep the test account separate from your personal account.
+- [ ] Verify the Brevo sender domain and SMTP credentials, then configure Supabase custom SMTP.
+- [ ] Send and receive production confirmation and password-recovery emails after SMTP verification.
 
-## Supabase Auth URL configuration
+Supabase leaked-password protection is a known Free-plan limitation and is intentionally outside this completion pass.
 
-In Supabase Dashboard → Authentication → URL Configuration:
+## Portfolio screenshot capture
 
-- Set Site URL to `https://devlens.cc.cd`.
-- Add the exact production redirect `https://devlens.cc.cd/?password-reset=1`.
-- Add `https://devlens.cc.cd/` for the site root.
-- For local development, add `http://localhost:5173/**`.
+No real screenshots are committed yet. Capture the live product, not mockups, at these sizes:
 
-The password recovery flow depends on the redirect URL being on the allow list. If you customise the recovery email template, make sure it honours the supplied redirect destination.
+- Desktop workspace: 1440 × 900.
+- Mobile workspace: 390 × 844.
+- Collections and environment screens.
+- Public shared-collection page.
+- Utilities and response inspector.
 
-## Run deployment
+Keep credentials, tokens, private URLs and personal account data out of screenshots.
 
-1. Open the DevLens repository on GitHub.
-2. Select Actions.
-3. Select Deploy DevLens to Cloudflare.
-4. Select Run workflow on the main branch. The workflow uses Cloudflare's current Wrangler Action v4.
+## Release rule
 
-The workflow stops before deployment if typecheck, unit tests or the production build fails. The Worker ships with `PROXY_EGRESS_ENABLED=false`, so the app can be deployed without exposing the unfinished outbound proxy.
-
-## Production gate
-
-Do not change `PROXY_EGRESS_ENABLED` to `true` until DNS-pinned outbound egress or an equivalent reviewed SSRF control is in place. The current Worker validates DNS answers and blocks redirects, but it cannot guarantee that the address used by the subsequent outbound fetch is the same address that was validated. See [the security review](SECURITY.md).
+A green deployment alone does not complete the project. The acceptance checks must pass, external account dependencies must be stated clearly, and documentation must match the deployed architecture. Do not claim universal API compatibility. Multipart browser uploads still depend on the destination's CORS policy.
