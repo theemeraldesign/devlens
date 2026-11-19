@@ -355,7 +355,6 @@ export default function App() {
         writeGuestCollections([collection, ...readGuestCollections().filter(item => item.id !== collection.id)]);
       } else {
         setCollections(current => current.map(item => item.id === collection.id ? { ...item, cloudOwnerId: accountId } : item));
-        await syncCloudCollections(accountId);
       }
     } else {
       writeGuestCollections([collection, ...readGuestCollections().filter(item => item.id !== collection.id)]);
