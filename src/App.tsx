@@ -221,10 +221,68 @@ export default function App() {
     }
   }
 
+  function exportActiveCollection() {
+    const collection = collections.find(item => item.id === activeCollectionId);
+    if (!collection) { setAccountNotice("Select a collection before exporting."); return; }
+    const blob = new Blob([JSON.stringify({ format: "devlens-collection", version: 1, name: collection.name, requests: collection.requests }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".devlens.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importCollectionFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      if (file.size > 2 * 1024 * 1024) throw new Error("Collection files must be smaller than 2 MB.");
+      const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
+      const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
+      const rows = Array.isArray(parsed.requests) ? parsed.requests : [];
+      if (!name || name.length > 120 || rows.length > 500) throw new Error("This is not a valid DevLens collection export.");
+      const importedRequests = rows.map((item, index) => {
+        if (!item || typeof item !== "object") throw new Error("A request entry is invalid.");
+        const row = item as Record<string, unknown>;
+        const method = String(row.method || "GET").toUpperCase();
+        if (!methods.includes(method as HttpMethod)) throw new Error("A request uses an unsupported HTTP method.");
+        if (typeof row.url !== "string" || !row.url.trim() || row.url.length > 4096) throw new Error("A request URL is missing or too long.");
+        const rawHeaders = Array.isArray(row.headers) ? row.headers : [];
+        const headers = rawHeaders.filter(header => header && typeof header === "object").map(header => {
+          const h = header as Record<string, unknown>;
+          return { key: String(h.key || "").slice(0,128), value: String(h.value || "").slice(0,8192), enabled: h.enabled !== false };
+        });
+        return {
+          id: uid(), name: typeof row.name === "string" ? row.name.slice(0,120) : `Imported request ${index + 1}`,
+          method, url: redactUrl(row.url), headers: safeSavedHeaders(headers), body: typeof row.body === "string" ? row.body.slice(0, 1024 * 1024) : "",
+          createdAt: new Date().toISOString()
+        };
+      });
+      const collection: LocalCollection = { id: uid(), name, requests: importedRequests, updatedAt: new Date().toISOString() };
+      const next = [collection, ...collections];
+      if (supabase && accountId) {
+        const { error: cloudError } = await supabase.from("collections").insert({
+          id: collection.id, owner_id: accountId, guest_id: collection.id, name,
+          content: { requests: importedRequests }
+        });
+        if (cloudError) throw cloudError;
+        collection.cloudOwnerId = accountId;
+      } else {
+        writeGuestCollections(next);
+      }
+      setCollections(next);
+      setActiveCollectionId(collection.id);
+      setCollectionName(collection.name);
+      setAccountNotice(`Imported "${collection.name}" with ${importedRequests.length} request(s).`);
+    } catch (error) {
+      setAccountNotice(error instanceof Error ? error.message : "Unable to import this collection.");
+    }
+  }
+
   async function saveRequest() {
     const current = collections.find(item => item.id === activeCollectionId);
     const target = current ?? { id: uid(), name: "My requests", requests: [], updatedAt: new Date().toISOString() };
-    const saved = { id: uid(), name: "Untitled request", method: request.method, url: request.url, headers: safeSavedHeaders(request.headers), body: request.body, createdAt: new Date().toISOString() };
+    const saved = { id: uid(), name: "Untitled request", method: request.method, url: redactUrl(request.url), headers: safeSavedHeaders(request.headers), body: request.body, createdAt: new Date().toISOString() };
     const next = current
       ? collections.map(item => item.id === current.id ? { ...item, requests: [saved, ...item.requests], updatedAt: new Date().toISOString() } : item)
       : [{ ...target, requests: [saved] }, ...collections];
@@ -339,6 +397,7 @@ export default function App() {
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
+      {activeNav === "Collections" && <div className="collection-actions"><button onClick={exportActiveCollection} disabled={!activeCollectionId}>Export selected</button><label>Import JSON<input type="file" accept=".json,application/json" onChange={event => { void importCollectionFile(event.target.files?.[0]); event.currentTarget.value = ""; }}/></label></div>}
       {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
       {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map(item=><button key={item.id} onClick={()=>updateRequest({method:item.method,url:item.url})}><span className="saved-method">{item.method}</span>{item.status ?? "—"} · {item.url}</button>) : <button disabled>No requests yet</button>}</div>}
       <div className="side-divider"/>
