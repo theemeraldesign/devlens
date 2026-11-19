@@ -20,7 +20,7 @@ The first application foundation is in place:
 - Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks.
 - Supabase schema with owner-scoped RLS for private data and a separate public snapshot surface.
 
-This is an early development build. Some controls and advanced utilities are still being connected. The request proxy's DNS validation is a first security layer, not a substitute for a dedicated, DNS-pinned egress gateway. Do not deploy it for public production traffic until the egress design receives a full SSRF review.
+This is an early development build. Collection management, history search, cURL import/export and public collection links are implemented. Multipart form-data and advanced utilities remain in progress. The request proxy's DNS validation is a first security layer, not a substitute for a dedicated, DNS-pinned egress gateway. Do not deploy it for public production traffic until the egress design receives a full SSRF review.
 
 ## Stack
 
@@ -58,7 +58,7 @@ npm run test:e2e
 
 ## Database
 
-Migrations live in `supabase/migrations`. The initial schema is applied to the dedicated DevLens Supabase project. All private tables have RLS enabled. Public visitors only receive the restricted `public_collections` view. Anonymous clients cannot write public snapshots or read owner and collection IDs.
+Migrations live in `supabase/migrations`. The initial schema is applied to the dedicated DevLens Supabase project. All private tables have RLS enabled. Public visitors only receive the restricted `public_collections` view. Anonymous and authenticated clients cannot write snapshots or read owner and collection IDs. Public publishing runs through an authenticated Edge Function with server-side sanitization. See [public sharing security](docs/SHARING.md).
 
 ## Deployment
 
