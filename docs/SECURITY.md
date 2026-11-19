@@ -16,7 +16,7 @@
 - RLS is enabled on every DevLens application table.
 - Private collections, environments and history have owner-scoped policies.
 - Anonymous database access is restricted to published snapshot fields.
-- Public snapshots use a restricted invoker view. Owner and collection IDs are not exposed to anonymous clients.
+- Public snapshots use a restricted invoker view. Owner and collection IDs are not exposed to anonymous clients. Browser clients cannot write public snapshots; publishing must go through a trusted service that sanitizes content server-side.
 - The Worker rejects non-HTTP(S) URLs, private IP literals, private DNS answers, credentials embedded in URLs and upstream redirects.
 - The Worker streams and caps request and response bodies, caps header count and size, and applies a timeout.
 - A Cloudflare Rate Limiting binding applies an approximate per-location limit of 60 proxy calls per minute per browser identity and source IP. This is a burst-control layer, not a strict global quota.
