@@ -13,6 +13,7 @@ export type LocalCollection = {
   name: string;
   requests: SavedRequest[];
   updatedAt: string;
+  cloudOwnerId?: string;
 };
 
 const STORAGE_KEY = "devlens.guest.v1";
