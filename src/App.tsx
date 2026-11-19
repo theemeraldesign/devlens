@@ -137,6 +137,8 @@ export default function App() {
       }, { onConflict: "owner_id,guest_id" });
       if (saveError) { setAccountNotice(saveError.message); writeGuestEnvironments(next.filter(item => !item.cloudOwnerId)); return; }
       setEnvironments(next.map(item => item.id === environment.id ? { ...item, cloudOwnerId: accountId } : item));
+      const guestBackup = readGuestEnvironments();
+      if (guestBackup.some(item => item.id === environment.id)) writeGuestEnvironments(guestBackup.map(item => item.id === environment.id ? environment : item));
     } else {
       writeGuestEnvironments(next.filter(item => !item.cloudOwnerId));
     }
@@ -222,6 +224,8 @@ export default function App() {
           writeGuestCollections(localFallback.filter(item => !item.cloudOwnerId));
         } else {
           setCollections(next.map(item => item.id === target.id ? { ...item, cloudOwnerId: accountId } : item));
+          const guestBackup = readGuestCollections();
+          if (guestBackup.some(item => item.id === target.id)) writeGuestCollections(guestBackup.map(item => item.id === target.id ? cloudCollection : item));
         }
       }
     } else {
