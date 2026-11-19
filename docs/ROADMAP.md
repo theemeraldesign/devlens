@@ -9,7 +9,8 @@
 - [x] Add Supabase email sign-in and guest collection import.
 - [x] Add initial RLS schema and restricted public snapshot view.
 - [x] Add CI, Vitest and Playwright smoke-test definitions.
-- [ ] Verify CI typecheck, tests and production build.
+- [x] Add a gated manual Cloudflare deployment workflow.
+- [ ] Verify CI typecheck, tests, production build and first Cloudflare deployment.
 - [ ] Complete SSRF-safe outbound egress design. DNS validation is present, but DNS-pinned egress is still required before public deployment.
 
 ## Request workspace
