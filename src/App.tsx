@@ -89,10 +89,10 @@ export default function App() {
   const [dialogState, setDialogState] = useState<{ kind: "confirm" | "prompt"; title: string; message: string; value: string } | null>(null);
   const dialogResolver = useRef<((value: boolean | string | null) => void) | null>(null);
   function askConfirm(message: string, title = "Confirm action"): Promise<boolean> {
-    return new Promise(resolve => { dialogResolver.current = resolve; setDialogState({ kind: "confirm", title, message, value: "" }); });
+    return new Promise(resolve => { dialogResolver.current = value => resolve(value === true); setDialogState({ kind: "confirm", title, message, value: "" }); });
   }
   function askPrompt(message: string, value = ""): Promise<string | null> {
-    return new Promise(resolve => { dialogResolver.current = resolve; setDialogState({ kind: "prompt", title: "Rename collection", message, value }); });
+    return new Promise(resolve => { dialogResolver.current = result => resolve(typeof result === "string" ? result : null); setDialogState({ kind: "prompt", title: "Rename collection", message, value }); });
   }
   function resolveDialog(value: boolean | string | null) {
     dialogResolver.current?.(value); dialogResolver.current = null; setDialogState(null);
