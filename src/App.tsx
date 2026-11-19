@@ -290,7 +290,7 @@ export default function App() {
         id: uid(), name: typeof row.name === "string" ? row.name.slice(0,120) : "Imported request " + (index + 1),
         method: method as HttpMethod, url: redactUrl(url.toString()), headers: safeSavedHeaders(headers),
         body: typeof row.body === "string" ? row.body.slice(0, 100_000) : "",
-        bodyType: (row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json") as SavedRequest["bodyType"],
+        bodyType: (row.bodyType === "text" || row.bodyType === "urlencoded" || row.bodyType === "formdata" ? row.bodyType : "json") as SavedRequest["bodyType"],
         createdAt: new Date().toISOString()
       }];
     });
@@ -392,7 +392,7 @@ export default function App() {
         });
         return {
           id: uid(), name: typeof row.name === "string" ? row.name.slice(0,120) : `Imported request ${index + 1}`,
-          method: method as HttpMethod, url: redactUrl(row.url), headers: safeSavedHeaders(headers), body: typeof row.body === "string" ? row.body.slice(0, 1024 * 1024) : "", bodyType: (row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json") as SavedRequest["bodyType"],
+          method: method as HttpMethod, url: redactUrl(row.url), headers: safeSavedHeaders(headers), body: typeof row.body === "string" ? row.body.slice(0, 1024 * 1024) : "", bodyType: (row.bodyType === "text" || row.bodyType === "urlencoded" || row.bodyType === "formdata" ? row.bodyType : "json") as SavedRequest["bodyType"],
           createdAt: new Date().toISOString()
         };
       });
