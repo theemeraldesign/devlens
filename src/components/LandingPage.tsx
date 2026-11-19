@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Activity, ArrowRight, ArrowUpRight, Braces, Check, Code2, Github, Globe2, Layers3, LockKeyhole, ShieldCheck, Terminal, Zap } from "lucide-react";
+import ShowcaseDeck from "./ShowcaseDeck";
 
 type Props = { onGetStarted: () => void; onSignIn: () => void };
 
@@ -37,6 +38,7 @@ export default function LandingPage({onGetStarted,onSignIn}:Props){
      <div className="preview-stack"><span><Code2/> Request</span><span><Braces/> Response</span><span><ShieldCheck/> Private</span></div>
     </div><a className="landing-scroll" href="#features">SCROLL TO EXPLORE <i/></a>
    </section>
+   <ShowcaseDeck/>
    <section className="landing-features" id="features"><div className="landing-kicker">ONE WORKSPACE. LESS FRICTION.</div><div className="landing-section-heading"><h2>Everything around<br/>the request, <em>in focus.</em></h2><p>Move from a raw endpoint to a repeatable workflow. Keep the details close, the interface quiet, and your work organised.</p></div>
     <div className="landing-grid">
      <article><div className="feature-art request-art"><b>POST</b><i/><i/><i/><span><Zap/> Send request</span></div><small>01 / REQUESTS</small><h3>Build with precision.</h3><p>Compose HTTP requests with headers, query parameters, authentication, and flexible request bodies.</p></article>
