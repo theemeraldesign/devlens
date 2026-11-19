@@ -68,6 +68,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collections, setCollections] = useState<LocalCollection[]>(() => readGuestCollections());
   const collectionSyncVersion = useRef(0);
+  const historySyncVersion = useRef(0);
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(() => readGuestCollections()[0]?.id ?? null);
   const [collectionName, setCollectionName] = useState(() => readGuestCollections()[0]?.name ?? "My workspace");
   const [environments, setEnvironments] = useState<LocalEnvironment[]>(() => readGuestEnvironments());
@@ -161,6 +162,7 @@ export default function App() {
 
   async function clearRequestHistory() {
     if (!(await askConfirm("Clear all saved request history from this workspace and your account?", "Clear request history"))) return;
+    historySyncVersion.current += 1;
     setHistory([]);
     writeRequestHistory([]);
     if (supabase && accountId) {
@@ -171,6 +173,7 @@ export default function App() {
 
   async function syncCloudHistory(userId: string) {
     if (!supabase) return;
+    const syncVersion = ++historySyncVersion.current;
     const { data, error: syncError } = await supabase.from("request_history")
       .select("id,method,url,status_code,duration_ms,created_at")
       .eq("owner_id", userId).order("created_at", { ascending: false }).limit(100);
@@ -182,6 +185,7 @@ export default function App() {
     } as RequestHistoryItem));
     const local = readRequestHistory();
     const cloudIds = new Set(cloud.map(item => item.id));
+    if (syncVersion !== historySyncVersion.current) return;
     setHistory([...cloud, ...local.filter(item => !cloudIds.has(item.id))].slice(0, 100));
   }
 
@@ -694,6 +698,7 @@ export default function App() {
         id: uid(), method: request.method, url: redactUrl(finalUrl.toString()),
         status: result.status, duration: result.duration, createdAt: new Date().toISOString()
       };
+      historySyncVersion.current += 1;
       setHistory(items => {
         const next = [historyItem, ...items.filter(item => item.url !== historyItem.url || item.method !== historyItem.method)].slice(0, 100);
         writeRequestHistory(next);
