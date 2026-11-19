@@ -67,6 +67,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromPath(window.location.pathname));
   const [menuOpen, setMenuOpen] = useState(false);
   const [collections, setCollections] = useState<LocalCollection[]>(() => readGuestCollections());
+  const collectionSyncVersion = useRef(0);
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(() => readGuestCollections()[0]?.id ?? null);
   const [collectionName, setCollectionName] = useState(() => readGuestCollections()[0]?.name ?? "My workspace");
   const [environments, setEnvironments] = useState<LocalEnvironment[]>(() => readGuestEnvironments());
@@ -110,8 +111,10 @@ export default function App() {
 
   async function syncCloudCollections(userId: string) {
     if (!supabase) return;
+    const syncVersion = ++collectionSyncVersion.current;
     const { data, error: syncError } = await supabase.from("collections").select("id,name,content,updated_at").eq("owner_id", userId).order("updated_at", { ascending: false });
-    if (syncError) { setAccountNotice(syncError.message); return; }
+    if (syncError) { if (syncVersion === collectionSyncVersion.current) setAccountNotice(syncError.message); return; }
+    if (syncVersion !== collectionSyncVersion.current) return;
     const cloud = (data || []).map(row => {
       const content = row.content as { requests?: LocalCollection["requests"] } | null;
       return { id: row.id, name: row.name, requests: Array.isArray(content?.requests) ? content.requests : [], updatedAt: row.updated_at, cloudOwnerId: userId } as LocalCollection;
@@ -130,6 +133,7 @@ export default function App() {
         ));
       }
     } catch { /* Publication status must not block workspace loading. */ }
+    if (syncVersion !== collectionSyncVersion.current) return;
     setCollections(merged);
     if (!activeCollectionId && merged.length) {
       setActiveCollectionId(merged[0].id);
@@ -335,16 +339,21 @@ export default function App() {
     const name = collectionName.trim();
     if (!name) return;
     const collection: LocalCollection = { id: uid(), name, requests: [], updatedAt: new Date().toISOString() };
-    const next = [collection, ...collections];
-    setCollections(next);
+    setCollections(current => [collection, ...current.filter(item => item.id !== collection.id)]);
     setActiveCollectionId(collection.id);
     setShowNew(false);
     if (supabase && accountId) {
       const { error: cloudError } = await supabase.from("collections").insert({ id: collection.id, owner_id: accountId, guest_id: collection.id, name, content: { requests: [] } });
-      if (cloudError) { setAccountNotice(cloudError.message); writeGuestCollections(next.filter(item => !item.cloudOwnerId)); }
-      else setCollections(next.map(item => item.id === collection.id ? { ...item, cloudOwnerId: accountId } : item));
+      if (cloudError) {
+        setAccountNotice(cloudError.message);
+        setCollections(current => current.map(item => item.id === collection.id ? { ...item, cloudOwnerId: undefined } : item));
+        writeGuestCollections([collection, ...readGuestCollections().filter(item => item.id !== collection.id)]);
+      } else {
+        setCollections(current => current.map(item => item.id === collection.id ? { ...item, cloudOwnerId: accountId } : item));
+        await syncCloudCollections(accountId);
+      }
     } else {
-      writeGuestCollections(next.filter(item => !item.cloudOwnerId));
+      writeGuestCollections([collection, ...readGuestCollections().filter(item => item.id !== collection.id)]);
     }
   }
 
@@ -363,20 +372,15 @@ export default function App() {
 
   async function publishCollection(id: string) {
     if (!supabase || !accountId) { setShowAuth(true); return; }
-    setAccountNotice("Preparing public collection link…");
-    const status = await invokePublishAction(id, "status");
-    if (status.error) { setAccountNotice(status.error.message); return; }
-    let slug = status.data?.slug as string | undefined;
-    if (!status.data?.published || !slug) {
-      const { data, error: publishError } = await invokePublishAction(id, "publish");
-      if (publishError || !data?.slug) {
-        setAccountNotice(publishError?.message || data?.error || "Unable to publish this collection.");
-        return;
-      }
-      slug = data.slug;
-      setAccountNotice("Collection published.");
+    setAccountNotice("Publishing collection…");
+    const { data, error: publishError } = await invokePublishAction(id, "publish");
+    if (publishError || !data?.slug) {
+      setAccountNotice(publishError?.message || data?.error || "Unable to publish this collection.");
+      return;
     }
-    setPublishedSlugs(current => ({ ...current, [id]: slug! }));
+    const slug = data.slug as string;
+    setPublishedSlugs(current => ({ ...current, [id]: slug }));
+    setAccountNotice("Collection published.");
     const shareUrl = window.location.origin + "/share/" + slug;
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -446,7 +450,6 @@ export default function App() {
     const current = collections.find(item => item.id === id);
     if (!current) return;
     const copy: LocalCollection = { ...current, id: uid(), name: current.name + " copy", requests: current.requests.map(item => ({ ...item, id: uid() })), updatedAt: new Date().toISOString(), cloudOwnerId: undefined };
-    const next = [copy, ...collections];
     if (supabase && accountId) {
       const { error: insertError } = await supabase.from("collections").insert({
         id: copy.id, owner_id: accountId, guest_id: copy.id, name: copy.name,
@@ -454,11 +457,14 @@ export default function App() {
       });
       if (insertError) { setAccountNotice("Unable to duplicate collection: " + insertError.message); return; }
       copy.cloudOwnerId = accountId;
-    } else writeGuestCollections(next);
-    setCollections(next);
+    } else {
+      writeGuestCollections([copy, ...readGuestCollections().filter(item => item.id !== copy.id)]);
+    }
+    setCollections(current => [copy, ...current.filter(item => item.id !== copy.id)]);
     setActiveCollectionId(copy.id);
     setCollectionName(copy.name);
     setAccountNotice("Collection duplicated.");
+    if (supabase && accountId) await syncCloudCollections(accountId);
   }
 
   async function deleteCollection(id: string) {
