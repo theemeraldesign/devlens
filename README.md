@@ -8,7 +8,7 @@ DevLens is an open-source API development studio for building requests, inspecti
 
 The first application foundation is in place:
 - Responsive request studio with seven HTTP methods.
-- Query parameters, editable headers, JSON/text/URL-encoded request bodies and authentication.
+- Query parameters, editable headers, JSON/text/URL-encoded bodies, multipart form-data text fields and authentication.
 - Response status, duration, size, pretty/raw body and response headers.
 - Guest collections, saved requests, private environments and request history stored in the browser.
 - Environment variable interpolation in URLs, headers, query parameters and request bodies.
@@ -22,7 +22,7 @@ The first application foundation is in place:
 - Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks.
 - Supabase schema with owner-scoped RLS for private data and a separate public snapshot surface.
 
-This is an early development build. Collection management, history search, cURL import/export and public collection links are implemented. Multipart form-data and advanced utilities remain in progress. The request proxy's DNS validation is a first security layer, not a substitute for a dedicated, DNS-pinned egress gateway. Do not deploy it for public production traffic until the egress design receives a full SSRF review.
+This is an early development build. Collection management, history search, cURL import/export, public collection links and multipart form-data text fields are implemented. File uploads and advanced utilities remain in progress. The request proxy's DNS validation is a first security layer, not a substitute for a dedicated, DNS-pinned egress gateway. Do not deploy it for public production traffic until the egress design receives a full SSRF review.
 
 ## Stack
 
