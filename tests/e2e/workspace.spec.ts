@@ -10,6 +10,31 @@ test("shows the public landing page before authentication", async ({ page }) => 
   await expect(page.locator(".landing-copy")).toHaveCSS("animation-name", "landing-rise");
 });
 
+
+test("landing page scrolls vertically on mobile without horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const dimensions = await page.evaluate(() => ({
+    scrollHeight: document.documentElement.scrollHeight,
+    clientHeight: window.innerHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth
+  }));
+  expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.clientHeight);
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test("collection icon folder responds to click and keyboard input", async ({ page }) => {
+  await page.goto("/");
+  const folder = page.getByRole("button", { name: "Toggle collection icon folder" });
+  await folder.click();
+  await expect(folder).toHaveAttribute("aria-expanded", "true");
+  await folder.press("Space");
+  await expect(folder).toHaveAttribute("aria-expanded", "false");
+});
+
 test("direct workspace routes return signed-out visitors to the landing page", async ({ page }) => {
   await page.goto("/collections");
   await expect(page.getByRole("heading", { name: /Make every API make sense/ })).toBeVisible();
