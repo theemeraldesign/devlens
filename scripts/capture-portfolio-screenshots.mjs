@@ -48,6 +48,18 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.goto(baseURL + "/collections", { waitUntil: "networkidle" });
+  const previousDemos = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) });
+  for (let index = await previousDemos.count() - 1; index >= 0; index -= 1) {
+    const oldCard = previousDemos.nth(index);
+    const oldUnpublish = oldCard.getByRole("button", { name: /Unpublish/ });
+    if (await oldUnpublish.count()) {
+      page.once("dialog", dialog => dialog.accept());
+      await oldUnpublish.click();
+      await page.locator(".import-banner").waitFor({ state: "visible" });
+    }
+    page.once("dialog", dialog => dialog.accept());
+    await oldCard.getByRole("button", { name: "Delete", exact: true }).click();
+  }
   await page.getByRole("button", { name: "New collection" }).first().click();
   await page.getByPlaceholder("Collection name").fill("DevLens Demo API");
   await page.getByRole("button", { name: "Create collection" }).click();
@@ -73,6 +85,15 @@ try {
   await shared.getByRole("heading", { name: "DevLens Demo API", exact: true }).waitFor();
   await shared.screenshot({ path: `${output}/shared-collection.png`, fullPage: false, animations: "disabled" });
   await shared.close();
+
+  const demoCard = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) }).last();
+  const demoUnpublish = demoCard.getByRole("button", { name: /Unpublish/ });
+  if (await demoUnpublish.count()) {
+    page.once("dialog", dialog => dialog.accept());
+    await demoUnpublish.click();
+  }
+  page.once("dialog", dialog => dialog.accept());
+  await demoCard.getByRole("button", { name: "Delete", exact: true }).click();
 
   await page.goto(baseURL + "/environments", { waitUntil: "networkidle" });
   await maskAccount(page);
