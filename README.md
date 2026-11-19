@@ -24,7 +24,7 @@ DevLens is an open-source API development studio for composing HTTP requests, in
 
 ## Developer tools
 
-- JSON formatting and diff.
+- JSON formatting and diff, plus XML formatting that preserves mixed content.
 - JWT header/payload inspection. Decoding does not verify signatures.
 - Base64 and URL encode/decode.
 - UUID generation.
