@@ -22,6 +22,7 @@ export default function App() {
   const [request, setRequest] = useState(initialRequest);
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [busy, setBusy] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"body" | "headers" | "params" | "auth">("headers");
   const [responseTab, setResponseTab] = useState<"pretty" | "raw" | "headers">("pretty");
@@ -110,7 +111,13 @@ export default function App() {
     setAccountNotice("");
   }
 
+  function cancelRequest() {
+    abortController?.abort();
+  }
+
   async function run() {
+    const controller = new AbortController();
+    setAbortController(controller);
     setBusy(true); setError(""); setResponse(null);
     try {
       const finalUrl = new URL(request.url);
@@ -122,11 +129,11 @@ export default function App() {
         if (apiKeyLocation === "Header") outgoingHeaders.push({ id: uid(), key: apiKeyName, value: apiKeyValue, enabled: true });
         else finalUrl.searchParams.set(apiKeyName, apiKeyValue);
       }
-      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString() });
+      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString() }, controller.signal);
       setResponse(result);
       setHistory(items => [redactUrl(request.url), ...items.filter(x => x !== redactUrl(request.url))].slice(0, 12));
-    } catch (e) { setError(e instanceof Error ? e.message : "Request failed."); }
-    finally { setBusy(false); }
+    } catch (e) { setError(e instanceof DOMException && e.name === "AbortError" ? "Request cancelled." : e instanceof Error ? e.message : "Request failed."); }
+    finally { setBusy(false); setAbortController(null); }
   }
 
   return <div className={dark ? "app dark" : "app light"}>
@@ -159,8 +166,8 @@ export default function App() {
       {accountNotice && <div className="import-banner"><span>{accountNotice}</span><button className="dismiss-import" onClick={() => setAccountNotice("")} aria-label="Dismiss"><X size={14}/></button></div>}
 
       <section className="request-card">
-        <div className="request-card-top"><div className="request-title"><div className="request-icon"><Code2 size={17}/></div><div><b>Untitled request</b><small>REST API · HTTP</small></div><span className="unsaved">UNSAVED</span></div><div className="request-actions"><button className="icon-button" title="Save request to this device" onClick={saveRequest}><Bookmark size={16}/></button><button className="icon-button" title="More"><MoreHorizontal size={17}/></button></div></div>
-        <div className="url-row"><select value={request.method} onChange={e=>updateRequest({method:e.target.value as HttpMethod})}>{methods.map(m=><option key={m}>{m}</option>)}</select><input className="url-input" value={request.url} onChange={e=>updateRequest({url:e.target.value})} onKeyDown={e=>e.key==="Enter"&&run()} aria-label="Request URL" placeholder="Enter request URL"/><button className="send-button" onClick={run} disabled={busy}><Send size={15}/>{busy?"Sending":"Send"}<span>↵</span></button></div>
+        <div className="request-card-top"><div className="request-title"><div className="request-icon"><Code2 size={17}/></div><div><b>Untitled request</b><small>REST API · HTTP</small></div><span className="unsaved">UNSAVED</span></div><div className="request-actions"><button className="icon-button" title="Save request to this device" onClick={saveRequest}><Bookmark size={16}/></button><button className="icon-button" title="Resend request" onClick={run}><Send size={15}/></button></div></div>
+        <div className="url-row"><select value={request.method} onChange={e=>updateRequest({method:e.target.value as HttpMethod})}>{methods.map(m=><option key={m}>{m}</option>)}</select><input className="url-input" value={request.url} onChange={e=>updateRequest({url:e.target.value})} onKeyDown={e=>e.key==="Enter"&&run()} aria-label="Request URL" placeholder="Enter request URL"/><button className="send-button" onClick={busy?cancelRequest:run}><Send size={15}/>{busy?"Cancel":"Send"}<span>↵</span></button></div>
         <div className="editor-tabs">{(["params","headers","body","auth"] as const).map(t=><button key={t} className={tab===t?"selected":""} onClick={()=>setTab(t)}>{t==="params"?"Params":t==="headers"?"Headers":t==="body"?"Body":"Auth"}{t==="headers"&&<span className="tab-count">{request.headers.length}</span>}</button>)}</div>
         <div className="editor-panel">
           {tab==="headers" && <><div className="panel-caption"><span>HEADER</span><span>VALUE</span><span> </span></div>{request.headers.map(h=><div className="key-value-row" key={h.id}><input type="checkbox" checked={h.enabled} onChange={e=>updateHeader(h.id,{enabled:e.target.checked})}/><input value={h.key} placeholder="Header name" onChange={e=>updateHeader(h.id,{key:e.target.value})}/><input value={h.value} placeholder="Value" onChange={e=>updateHeader(h.id,{value:e.target.value})}/><button className="row-icon" onClick={()=>updateRequest({headers:request.headers.filter(x=>x.id!==h.id)})}><X size={14}/></button></div>)}<button className="add-row" onClick={()=>updateRequest({headers:[...request.headers,{id:uid(),key:"",value:"",enabled:true}]})}><Plus size={14}/> Add header</button></>}
