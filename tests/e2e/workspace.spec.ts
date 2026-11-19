@@ -119,10 +119,11 @@ test("creates a private environment from mobile navigation", async ({ page }) =>
 
 test("imports and exports a DevLens collection", async ({ page }) => {
   await page.goto("/");
+  const importedName = `Imported API ${Date.now()}`;
   const collection = {
     format: "devlens-collection",
     version: 1,
-    name: "Imported API",
+    name: importedName,
     requests: [{
       name: "List posts",
       method: "GET",
@@ -136,15 +137,17 @@ test("imports and exports a DevLens collection", async ({ page }) => {
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(collection))
   });
-  await expect(page.locator(".collection-list")).toContainText("Imported API");
+  await expect(page.locator(".collection-list")).toContainText(importedName);
+  await page.getByRole("button", { name: /Collections/ }).first().click();
+  const importedCard = page.locator(`.screen-card:has(h3:text-is("${importedName}"))`);
+  await expect(importedCard).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
-  const importedCard = page.locator(".screen-card").filter({
-    has: page.getByRole("heading", { name: "Imported API", exact: true })
-  });
-  const importedDownloadPromise = page.waitForEvent("download");
   await importedCard.getByRole("button", { name: "Export", exact: true }).click();
-  const download = await importedDownloadPromise;
-  expect(download.suggestedFilename()).toContain("imported-api");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toContain(importedName.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+  page.once("dialog", dialog => dialog.accept());
+  await importedCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(importedCard).toHaveCount(0);
 });
 
 test("imports a cURL command into the request editor", async ({ page }) => {
@@ -161,23 +164,24 @@ test("imports a cURL command into the request editor", async ({ page }) => {
 
 test("renames, duplicates and deletes a collection", async ({ page }) => {
   await page.goto("/collections");
+  const renamedName = `Renamed API ${Date.now()}`;
   await page.getByRole("button", { name: "New collection" }).first().click();
-  await page.getByPlaceholder("Collection name").fill("Portfolio API");
+  await page.getByPlaceholder("Collection name").fill(`Portfolio API ${Date.now()}`);
   await page.getByRole("button", { name: "Create collection" }).click();
-  page.once("dialog", dialog => dialog.accept("Renamed API"));
+  page.once("dialog", dialog => dialog.accept(renamedName));
   await page.getByRole("button", { name: "Rename", exact: true }).first().click();
-  await expect(page.locator(".screen-card-grid")).toContainText("Renamed API");
-  const renamedCard = page.locator(".screen-card").filter({
-    has: page.getByRole("heading", { name: "Renamed API", exact: true })
-  });
+  const renamedCard = page.locator(`.screen-card:has(h3:text-is("${renamedName}"))`);
+  await expect(renamedCard).toBeVisible();
   await renamedCard.getByRole("button", { name: "Duplicate", exact: true }).click();
-  await expect(page.locator(".screen-card-grid")).toContainText("Renamed API copy");
+  const copyName = `${renamedName} copy`;
+  const copyCard = page.locator(`.screen-card:has(h3:text-is("${copyName}"))`);
+  await expect(copyCard).toBeVisible();
   page.once("dialog", dialog => dialog.accept());
-  const copyCard = page.locator(".screen-card").filter({
-    has: page.getByRole("heading", { name: "Renamed API copy", exact: true })
-  });
-  await copyCard.getByRole("button", { name: "Delete" }).click();
-  await expect(page.locator(".screen-card-grid")).not.toContainText("Renamed API copy");
+  await copyCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(copyCard).toHaveCount(0);
+  page.once("dialog", dialog => dialog.accept());
+  await renamedCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(renamedCard).toHaveCount(0);
 });
 
 test("edits multipart form-data fields in the request builder", async ({ page }) => {

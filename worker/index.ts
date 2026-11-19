@@ -197,7 +197,7 @@ async function proxy(request: Request, env: Env): Promise<Response> {
     }
 
     const bearer = request.headers.get("authorization") || "";
-    const tokenMatch = bearer.match(/^Bearer\\s+(.+)$/i);
+    const tokenMatch = bearer.match(/^Bearer\s+(.+)$/i);
     if (!tokenMatch || !env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY || !env.EGRESS_GATEWAY_URL || !env.EGRESS_SHARED_SECRET) {
       return json({ error: "Sign in is required to use the secure request gateway." }, 401);
     }
