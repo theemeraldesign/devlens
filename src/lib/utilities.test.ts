@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createUuid, decodeUrl, encodeUrl, fromBase64, importCurl, inspectJwt, prettyJson, prettyXml, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
+import { createUuid, decodeUrl, diffJson, encodeUrl, exportCurl, fromBase64, importCurl, inspectJwt, prettyJson, prettyXml, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
 
 describe("developer utilities", () => {
   it("formats JSON", () => expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}'));
@@ -95,4 +95,32 @@ describe("cURL import", () => {
     expect(() => importCurl("curl file:///etc/passwd")).toThrow(/HTTP and HTTPS/);
     expect(() => importCurl("curl --output result.txt https://api.example.com")).toThrow(/Unsupported cURL option/);
   });
+  it("preserves mixed XML content without adding whitespace", () => {
+    expect(prettyXml('<p>Hello <b>world</b>!</p>')).toBe('<p>Hello <b>world</b>!</p>');
+    expect(prettyXml('<p xml:space="preserve"> <b> x </b> </p>')).toBe('<p xml:space="preserve"> <b> x </b> </p>');
+  });
+  it("formats XML declarations, doctypes and quoted greater-than attributes", () => {
+    expect(prettyXml('<?xml version="1.0"?><!DOCTYPE root [<!ELEMENT root (item*)>]><root><item label="a > b"/><item>two</item></root>')).toBe([
+      '<?xml version="1.0"?>',
+      '<!DOCTYPE root [<!ELEMENT root (item*)>]>',
+      '<root>',
+      '  <item label="a > b"/>',
+      '  <item>two</item>',
+      '</root>'
+    ].join("\n"));
+  });
+  it("compares nested JSON objects and reports added and removed keys", () => {
+    expect(diffJson({ a: 1, nested: { x: true }, old: "gone" }, { a: 2, nested: { x: true }, added: "new" })).toEqual([
+      { path: "$.a", before: 1, after: 2 },
+      { path: "$.old", before: "gone", after: null },
+      { path: "$.added", before: null, after: "new" }
+    ]);
+  });
+  it("exports cURL with quoted URL, headers and request body", () => {
+    const output = exportCurl({ method: "POST", url: "https://api.example.com/items", headers: { "Content-Type": "application/json" }, body: '{"name":"Ada"}' });
+    expect(output).toContain("curl 'https://api.example.com/items'");
+    expect(output).toContain("-H 'Content-Type: application/json'");
+    expect(output).toContain("--data-raw '{\"name\":\"Ada\"}'");
+  });
+
 });
