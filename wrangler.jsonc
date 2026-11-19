@@ -18,6 +18,7 @@
   "vars": {
     "MAX_REQUEST_BYTES": "1048576",
     "MAX_RESPONSE_BYTES": "5242880",
-    "REQUEST_TIMEOUT_MS": "20000"
+    "REQUEST_TIMEOUT_MS": "20000",
+    "PROXY_EGRESS_ENABLED": "false"
   }
 }
