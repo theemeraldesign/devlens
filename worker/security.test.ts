@@ -8,7 +8,7 @@ describe("SSRF destination checks", () => {
     "192.168.1.4", "169.254.169.254", "100.64.0.1", "0.0.0.0",
     "224.0.0.1", "::", "::1", "fc00::1", "fd00::1", "fe80::1",
     "ff02::1", "::ffff:127.0.0.1", "192.0.2.1", "198.51.100.10",
-    "203.0.113.7"
+    "203.0.113.7", "8.8.8.999"
   ])("blocks private or reserved destination %s", host => {
     expect(isPrivateAddress(host)).toBe(true);
   });
