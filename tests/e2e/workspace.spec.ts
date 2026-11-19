@@ -421,7 +421,8 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   const importedCard = sharedPage.locator(".screen-card").filter({ has: sharedPage.getByRole("heading", { name: importedName, exact: true }) });
   await expect(importedCard).toBeVisible();
 
-  await page.getByRole("link", { name: "DevLens home" }).click();
+  await page.goto("/");
+  await page.getByRole("button", { name: "Collections" }).first().click();
   const unpublish = page.getByRole("button", { name: "Unpublish " + name });
   await expect(unpublish).toBeVisible();
   let forceUnauthorizedUnpublish = true;
