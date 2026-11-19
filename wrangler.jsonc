@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "devlens",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true,
+    "traces": { "enabled": true }
+  },
+  "vars": {
+    "MAX_REQUEST_BYTES": "1048576",
+    "MAX_RESPONSE_BYTES": "5242880",
+    "REQUEST_TIMEOUT_MS": "20000"
+  }
+}
