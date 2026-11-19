@@ -14,7 +14,7 @@ type ProxyInput = {
 };
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
-const PRIVATE_HOSTS = /^(localhost|.*\\.localhost|.*\\.local|metadata\\.google\\.internal)$/i;
+const PRIVATE_HOSTS = /^(localhost|.*\\.localhost|.*\\.local|.*\\.internal|.*\\.intranet|.*\\.lan|.*\\.home\\.arpa|metadata\\.google\\.internal)$/i;
 
 export function isPrivateAddress(host: string): boolean {
   const h = host.toLowerCase().replace(/^\\[|\\]$/g, "").split("%")[0];
@@ -122,7 +122,9 @@ async function proxy(request: Request, env: Env): Promise<Response> {
     const method = String(input.method || "GET").toUpperCase();
     if (!METHODS.has(method)) return json({ error: "HTTP method is not allowed." }, 400);
     let target: URL;
-    try { target = new URL(String(input.url || "")); } catch { return json({ error: "Enter a valid URL." }, 400); }
+    const rawUrl = String(input.url || "");
+    if (rawUrl.length > 4096) return json({ error: "Request URL is too long." }, 400);
+    try { target = new URL(rawUrl); } catch { return json({ error: "Enter a valid URL." }, 400); }
     if (!["http:", "https:"].includes(target.protocol)) return json({ error: "Only HTTP and HTTPS URLs are supported." }, 400);
     if (target.username || target.password || isPrivateAddress(target.hostname)) return json({ error: "This destination is not allowed." }, 403);
 
