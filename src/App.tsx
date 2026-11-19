@@ -47,6 +47,7 @@ export default function App() {
   const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
   const [editingEnvironment, setEditingEnvironment] = useState<LocalEnvironment | null>(null);
   const [history, setHistory] = useState<RequestHistoryItem[]>(() => readRequestHistory());
+  const [historyFilter, setHistoryFilter] = useState("");
   const [showTools, setShowTools] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"collections" | "environments" | "history" | "utilities" | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -99,6 +100,16 @@ export default function App() {
     const nextActiveId = active ? (active.guest_id || active.id) : readActiveEnvironmentId(merged);
     setActiveEnvironmentId(nextActiveId);
     writeActiveEnvironmentId(nextActiveId);
+  }
+
+  async function clearRequestHistory() {
+    if (!window.confirm("Clear all saved request history from this workspace and your account?")) return;
+    setHistory([]);
+    writeRequestHistory([]);
+    if (supabase && accountId) {
+      const { error: clearError } = await supabase.from("request_history").delete().eq("owner_id", accountId);
+      if (clearError) setAccountNotice("Local history cleared, but cloud history could not be cleared: " + clearError.message);
+    }
   }
 
   async function syncCloudHistory(userId: string) {
@@ -478,7 +489,7 @@ export default function App() {
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><div className="collection-row"><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button><div className="collection-row-actions"><button title={`Rename ${collection.name}`} aria-label={`Rename ${collection.name}`} onClick={()=>void renameCollection(collection.id)}>Rename</button><button title={`Duplicate ${collection.name}`} aria-label={`Duplicate ${collection.name}`} onClick={()=>void duplicateCollection(collection.id)}>Copy</button><button title={`Delete ${collection.name}`} aria-label={`Delete ${collection.name}`} onClick={()=>void deleteCollection(collection.id)}>Delete</button></div></div>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,bodyType:saved.bodyType ?? "json",headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
       {activeNav === "Collections" && <div className="collection-actions"><button onClick={exportActiveCollection} disabled={!activeCollectionId}>Export selected</button><label>Import JSON<input type="file" accept=".json,application/json" onChange={event => { void importCollectionFile(event.target.files?.[0]); event.currentTarget.value = ""; }}/></label></div>}
       {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
-      {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map(item=><button key={item.id} onClick={()=>updateRequest({method:item.method,url:item.url})}><span className="saved-method">{item.method}</span>{item.status ?? "—"} · {item.url}</button>) : <button disabled>No requests yet</button>}</div>}
+      {activeNav === "History" && <div className="history-panel"><div className="history-tools"><input aria-label="Search request history" placeholder="Search method or URL" value={historyFilter} onChange={event=>setHistoryFilter(event.target.value)}/><button onClick={()=>void clearRequestHistory()} disabled={!history.length}>Clear</button></div><div className="tool-subnav">{history.filter(item=>(item.method+" "+item.url+" "+(item.status ?? "")).toLowerCase().includes(historyFilter.toLowerCase())).length ? history.filter(item=>(item.method+" "+item.url+" "+(item.status ?? "")).toLowerCase().includes(historyFilter.toLowerCase())).map(item=><button key={item.id} onClick={()=>updateRequest({method:item.method,url:item.url})}><span className="saved-method">{item.method}</span>{item.status ?? "—"} · {item.url}</button>) : <button disabled>{history.length ? "No matching requests" : "No requests yet"}</button>}</div></div>}
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
       <nav className="side-nav">
