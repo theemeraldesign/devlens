@@ -150,7 +150,13 @@ export default function App() {
     if (!supabase || !accountId) return;
     const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
     if (deactivateError) { setAccountNotice(deactivateError.message); return; }
-    const { error: activateError } = await supabase.from("environments").update({ is_active: true }).eq("owner_id", accountId).eq("guest_id", id);
+    const environment = environments.find(item => item.id === id);
+    if (!environment) return;
+    const variables = Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value]));
+    const { error: activateError } = await supabase.from("environments").upsert({
+      id: environment.id, owner_id: accountId, guest_id: environment.id,
+      name: environment.name, variables, is_active: true
+    }, { onConflict: "owner_id,guest_id" });
     if (activateError) setAccountNotice(activateError.message);
   }
 
@@ -208,15 +214,13 @@ export default function App() {
       if (importError) { setAccountNotice(importError.message); return; }
     }
     if (environments.length) {
-      const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
-      if (deactivateError) { setAccountNotice(deactivateError.message); return; }
       const rows = environments.map(environment => ({
         id: environment.id,
         owner_id: accountId,
         guest_id: environment.id,
         name: environment.name,
         variables: Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value])),
-        is_active: environment.id === activeEnvironmentId
+        is_active: false
       }));
       const { error: importError } = await supabase.from("environments").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
       if (importError) { setAccountNotice(importError.message); return; }
