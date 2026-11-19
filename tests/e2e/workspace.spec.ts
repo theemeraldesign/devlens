@@ -5,7 +5,7 @@ test("opens the request studio and creates a local collection", async ({ page })
   await expect(page.getByRole("heading", { name: "Request studio." })).toBeVisible();
   await expect(page.getByLabel("Request URL")).toHaveValue("https://jsonplaceholder.typicode.com/posts/1");
   await page.getByRole("button", { name: "Collections" }).first().click();
-  await expect(page).toHaveURL(/\\/collections$/);
+  await expect(page).toHaveURL(url => url.pathname === "/collections");
   await page.getByRole("button", { name: "New collection" }).first().click();
   await page.getByPlaceholder("Collection name").fill("Portfolio API");
   await page.getByRole("button", { name: "Create collection" }).click();
@@ -69,7 +69,7 @@ test("imports and exports a DevLens collection", async ({ page }) => {
 test("imports a cURL command into the request editor", async ({ page }) => {
   await page.goto("/tools");
   await page.getByRole("button", { name: "cURL importer" }).click();
-  await page.locator(".utility-input").fill("curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{\\"name\\":\\"DevLens\\"}'");
+  await page.locator(".utility-input").fill("curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{\"name\":\"DevLens\"}'");
   await page.getByRole("button", { name: /run utility/i }).click();
   await page.getByRole("button", { name: "Load into request editor" }).click();
   await expect(page.getByLabel("HTTP method")).toHaveValue("POST");
@@ -118,17 +118,17 @@ test("uses separate responsive screens and a visible brand on Android", async ({
   await expect(page.getByLabel("Request URL")).toBeVisible();
   await expect(page.getByRole("button", { name: "Workspace" })).toBeVisible();
   await page.getByRole("button", { name: "Collections" }).first().click();
-  await expect(page).toHaveURL(/\\/collections$/);
+  await expect(page).toHaveURL(url => url.pathname === "/collections");
   await expect(page.getByRole("heading", { name: "Request collections", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Environments" }).click();
-  await expect(page).toHaveURL(/\\/environments$/);
+  await expect(page).toHaveURL(url => url.pathname === "/environments");
   await expect(page.getByRole("heading", { name: "Environments", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "New environment" }).first()).toBeVisible();
   await page.getByRole("button", { name: "History" }).click();
-  await expect(page).toHaveURL(/\\/history$/);
+  await expect(page).toHaveURL(url => url.pathname === "/history");
   await expect(page.getByRole("heading", { name: "Request history", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Tools" }).click();
-  await expect(page).toHaveURL(/\\/tools$/);
+  await expect(page).toHaveURL(url => url.pathname === "/tools");
   await expect(page.getByRole("button", { name: "JSON formatter" })).toBeVisible();
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, page: document.documentElement.scrollWidth }));
   expect(widths.page).toBeLessThanOrEqual(widths.viewport);
