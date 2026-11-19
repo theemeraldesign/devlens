@@ -4,10 +4,12 @@
 
 ### Make every API make sense.
 
-A focused API development studio for building HTTP requests, inspecting responses, and organising API work in one secure workspace.
+A focused API development workspace for composing HTTP requests, inspecting responses, and keeping API work organised.
 
 <p>
-  <a href="https://devlens.cc.cd"><strong>Open DevLens ↗</strong></a> &nbsp;·&nbsp; <a href="https://github.com/theemeraldesign/devlens">Source code</a> &nbsp;·&nbsp; <a href="https://github.com/theemeraldesign/devlens/issues">Report an issue</a>
+  <a href="https://devlens.cc.cd"><strong>Open DevLens ↗</strong></a> &nbsp;·&nbsp;
+  <a href="https://github.com/theemeraldesign/devlens">Source code</a> &nbsp;·&nbsp;
+  <a href="https://github.com/theemeraldesign/devlens/issues">Report an issue</a>
 </p>
 
 <p>
@@ -22,30 +24,34 @@ A focused API development studio for building HTTP requests, inspecting response
 
 ---
 
-## Product preview
+## Overview
 
-The screenshots below are captured from the live production application using a dedicated test account. Demo data is used. Account identifiers and private values are masked.
+DevLens brings everyday API development tasks into one workspace. Build and send HTTP requests, inspect server responses, organise reusable requests, manage environment variables, and share read-only collections.
+
+The interface is designed to keep request details easy to reach while making response data clear to inspect.
+
+## Product preview
 
 <div align="center">
   <a href="docs/screenshots/landing-desktop.png">
-    <img src="docs/screenshots/landing-desktop.png" width="100%" alt="DevLens public landing page"/>
+    <img src="docs/screenshots/landing-desktop.png" width="100%" alt="DevLens landing page on desktop"/>
   </a>
   <br/>
-  <sub>Public landing page · Desktop</sub>
+  <sub>DevLens · Desktop landing page</sub>
 </div>
 
 <details open>
-  <summary><strong>Workspace and response inspector</strong></summary>
+  <summary><strong>Request workspace and response inspector</strong></summary>
   <br/>
   <div align="center">
-    <img src="docs/screenshots/workspace-desktop.png" width="100%" alt="DevLens request workspace on desktop"/>
-    <br/><sub>Request studio · Desktop</sub>
+    <img src="docs/screenshots/workspace-desktop.png" width="100%" alt="DevLens request workspace"/>
+    <br/><sub>Compose and send API requests</sub>
     <br/><br/>
-    <img src="docs/screenshots/response-inspector.png" width="100%" alt="DevLens response inspector showing a formatted JSON response"/>
-    <br/><sub>Response inspector · Pretty JSON, status, timing and headers</sub>
+    <img src="docs/screenshots/response-inspector.png" width="100%" alt="Formatted API response inspector"/>
+    <br/><sub>Inspect response status, timing, headers and formatted data</sub>
     <br/><br/>
-    <img src="docs/screenshots/history-desktop.png" width="100%" alt="DevLens request history on desktop"/>
-    <br/><sub>Request history · Synced request activity</sub>
+    <img src="docs/screenshots/history-desktop.png" width="100%" alt="DevLens request history"/>
+    <br/><sub>Review recent request activity</sub>
   </div>
 </details>
 
@@ -53,14 +59,14 @@ The screenshots below are captured from the live production application using a 
   <summary><strong>Collections, environments and sharing</strong></summary>
   <br/>
   <div align="center">
-    <img src="docs/screenshots/collections-desktop.png" width="100%" alt="DevLens API collections"/>
-    <br/><sub>Saved collections and requests</sub>
+    <img src="docs/screenshots/collections-desktop.png" width="100%" alt="DevLens collections"/>
+    <br/><sub>Organise saved requests</sub>
     <br/><br/>
     <img src="docs/screenshots/environments-desktop.png" width="100%" alt="DevLens environment variables"/>
-    <br/><sub>Environment variables · Demo values only</sub>
+    <br/><sub>Manage reusable environment values</sub>
     <br/><br/>
-    <img src="docs/screenshots/shared-collection.png" width="100%" alt="DevLens public read-only collection"/>
-    <br/><sub>Read-only public collection</sub>
+    <img src="docs/screenshots/shared-collection.png" width="100%" alt="A public read-only DevLens collection"/>
+    <br/><sub>Share read-only collection snapshots</sub>
   </div>
 </details>
 
@@ -69,91 +75,98 @@ The screenshots below are captured from the live production application using a 
   <br/>
   <div align="center">
     <img src="docs/screenshots/utilities.png" width="100%" alt="DevLens developer utilities"/>
-    <br/><sub>Developer utilities</sub>
+    <br/><sub>Built-in developer utilities</sub>
     <br/><br/>
-    <img src="docs/screenshots/workspace-mobile.png" width="390" alt="DevLens workspace on a mobile screen"/>
-    <br/><sub>Responsive workspace · Mobile</sub>
+    <img src="docs/screenshots/workspace-mobile.png" width="390" alt="DevLens workspace on mobile"/>
+    <br/><sub>Responsive mobile workspace</sub>
   </div>
 </details>
 
 ---
 
-## What you can do
+## Features
 
-| Workspace | Capabilities |
+| Area | Capabilities |
 |:--|:--|
-| Request studio | Compose GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS requests. Edit query parameters, headers, authentication and request bodies. |
-| Collections | Save, organise, duplicate, rename, import and export API requests. |
-| Environments | Store reusable variables and interpolate them into URLs, headers, parameters and bodies. |
-| Response inspector | Inspect status, duration, size and headers. Switch between pretty and raw output. Format XML and download JSON, XML or text responses. |
-| Request history | Review synced request metadata with sensitive URL values redacted. |
-| Sharing | Publish read-only collections, share a link, import a shared collection and unpublish it. |
-| Developer utilities | Format and diff JSON, format XML, inspect JWT payloads, encode/decode Base64 and URLs, generate UUIDs, and import/export cURL. |
+| Request studio | Compose GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS requests. Configure query parameters, headers, authentication and request bodies. |
+| Collections | Save, organise, rename, duplicate, import and export API requests. |
+| Environments | Store reusable variables and insert them into URLs, headers, parameters and request bodies. |
+| Response inspector | Review status, duration, size and headers. View formatted or raw responses, format XML, and download JSON, XML or text. |
+| Request history | Search and revisit recent API activity. Stored history contains redacted request metadata rather than request or response bodies. |
+| Collection sharing | Publish read-only collection snapshots, share links, import shared collections and unpublish them. |
+| Developer utilities | Format and compare JSON, format XML, inspect JWT payloads, encode and decode Base64 or URLs, generate UUIDs, and import or export cURL. |
+| Accounts and guest mode | Work in a guest workspace or sign in to sync supported workspace data to an account. |
 
-## Security architecture
+## Security
 
-DevLens routes authenticated text-based API requests through a dedicated server-side egress gateway.
+Authenticated API requests pass through a server-side egress gateway.
 
 ```mermaid
 flowchart LR
-    A[Browser workspace] --> B[Cloudflare Worker]
+    A[DevLens workspace] --> B[Cloudflare Worker]
     B --> C[Supabase Auth]
-    B -->|Signed request · HMAC| D[Vercel egress gateway]
+    B -->|Signed request| D[Vercel egress gateway]
     D --> E[Destination API]
     E --> D
     D --> B
     B --> A
 ```
 
-- The Worker validates the Supabase session and applies per-IP and per-user rate limits.
-- HMAC signatures and timestamps authenticate requests between the Worker and gateway.
-- The gateway uses guarded outbound fetching, DNS checks and connection-time IP pinning to reduce SSRF and DNS-rebinding risks.
-- Private, loopback, link-local, metadata and reserved network destinations are blocked.
-- Redirects are blocked. Send requests to the final destination directly.
-- Request and response sizes, duration and response headers are capped.
-- Cookies are stripped from gateway responses.
-- Request history stores redacted metadata, not request or response bodies.
-- Public collection pages expose sanitised, read-only snapshots.
+The request gateway applies destination and network safeguards designed to reduce server-side request forgery and DNS-rebinding risks. It blocks private and reserved network destinations, restricts redirects, and applies request and response limits.
 
-Browser-based multipart file uploads remain subject to the destination API CORS policy. APIs that reject browser CORS need a compatible server-side request path. See the [security model](docs/SECURITY.md) for exact boundaries and limitations.
+Other security measures include:
 
-## Built with
+- Supabase session validation for authenticated requests.
+- Signed communication between the Cloudflare Worker and the egress gateway.
+- Per-IP and per-user rate limits.
+- Redaction of sensitive URL values in request history.
+- Sanitised, read-only snapshots for public collections.
+- No storage of request or response bodies in request history.
 
-| Layer | Technologies |
+Browser-based multipart uploads are subject to the destination API's CORS policy. See the [security model](docs/SECURITY.md) for the detailed architecture, limitations and threat boundaries.
+
+## Technology
+
+| Layer | Stack |
 |:--|:--|
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS |
-| Edge and hosting | Cloudflare Workers and Static Assets |
-| Secure egress | Vercel serverless functions, guarded-fetch |
-| Auth and data | Supabase Auth, PostgreSQL, Row Level Security |
-| Quality | Vitest, Playwright, GitHub Actions |
+| Edge runtime and hosting | Cloudflare Workers and Static Assets |
+| Request gateway | Vercel serverless functions |
+| Authentication and data | Supabase Auth, PostgreSQL and Row Level Security |
+| Testing | Vitest, Playwright and GitHub Actions |
 
 ## Run locally
 
 ### Requirements
 
-- Node.js 22.23.4 or later in the 22.x line
+- Node.js 22.x
 - npm
 
-### Setup
+### Installation
 
 ```bash
 git clone https://github.com/theemeraldesign/devlens.git
 cd devlens
 npm install
 cp .env.example .env.local
-npm run dev
 ```
 
-Set the following public client configuration in `.env.local`:
+Add the public Supabase client settings to `.env.local`:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 ```
 
-Never place a Supabase secret or service-role key in browser code.
+Start the development server:
 
-### Quality checks
+```bash
+npm run dev
+```
+
+Never place a Supabase secret or service-role key in frontend code.
+
+### Run checks
 
 ```bash
 npm run typecheck
@@ -162,12 +175,7 @@ npm run build
 npm run test:e2e
 ```
 
-The authenticated Playwright suite requires a dedicated, email-confirmed test account:
-
-- `DEVLENS_E2E_EMAIL`
-- `DEVLENS_E2E_PASSWORD`
-
-The secure egress gateway has a separate test suite:
+The authenticated end-to-end tests require a dedicated test account configured through the test environment. The request gateway has its own test suite:
 
 ```bash
 cd gateway
@@ -175,25 +183,21 @@ npm install
 npm test
 ```
 
-## Project documentation
+## Documentation
 
-| Document | Purpose |
-|:--|:--|
-| [Setup guide](docs/SETUP.md) | Local setup and configuration |
-| [Architecture](docs/ARCHITECTURE.md) | Application and service boundaries |
-| [Deployment](docs/DEPLOYMENT.md) | Cloudflare, Vercel and CI deployment |
-| [Security model](docs/SECURITY.md) | Authentication, egress controls and threat boundaries |
-| [Sharing security](docs/SHARING.md) | Public collection publishing and sanitisation |
-| [Completion roadmap](docs/ROADMAP.md) | Product scope and remaining work |
-| [Release record](docs/RELEASE.md) | Production verification and release notes |
-| [Screenshot guide](docs/SCREENSHOTS.md) | How production screenshots are refreshed |
+- [Local setup](docs/SETUP.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Security model](docs/SECURITY.md)
+- [Collection sharing](docs/SHARING.md)
+- [Product roadmap](docs/ROADMAP.md)
+- [Release notes](docs/RELEASE.md)
+- [Screenshot guide](docs/SCREENSHOTS.md)
 
 ## Project status
 
-DevLens is live at **[devlens.cc.cd](https://devlens.cc.cd)**. Production CI verifies the build, unit tests, gateway tests, responsive browser flows, authentication-backed workspace operations and production routes.
-
-Production email delivery still depends on completing sender-domain verification and SMTP setup in Brevo. This does not prevent the deployed workspace from loading.
+DevLens is available at **[devlens.cc.cd](https://devlens.cc.cd)**. The application is actively maintained, with automated checks covering builds, unit tests and browser workflows.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
