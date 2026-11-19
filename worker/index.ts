@@ -17,30 +17,59 @@ type ProxyInput = {
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 const PRIVATE_HOSTS = /^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.intranet|.*\.lan|.*\.home\.arpa|metadata\.google\.internal)$/i;
 
+function ipv6ToBigInt(address: string): bigint | null {
+  let value = address.toLowerCase().split("%")[0];
+  if (value.includes(".")) {
+    const lastColon = value.lastIndexOf(":");
+    if (lastColon < 0) return null;
+    const octets = value.slice(lastColon + 1).split(".").map(Number);
+    if (octets.length !== 4 || octets.some(part => !Number.isInteger(part) || part < 0 || part > 255)) return null;
+    const high = ((octets[0] << 8) | octets[1]).toString(16);
+    const low = ((octets[2] << 8) | octets[3]).toString(16);
+    value = value.slice(0, lastColon + 1) + high + ":" + low;
+  }
+  const halves = value.split("::");
+  if (halves.length > 2) return null;
+  const left = halves[0] ? halves[0].split(":") : [];
+  const right = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = halves.length === 2 ? 8 - left.length - right.length : 0;
+  if ((halves.length === 1 && left.length !== 8) || (halves.length === 2 && missing < 1)) return null;
+  const parts = halves.length === 2 ? [...left, ...Array(missing).fill("0"), ...right] : left;
+  if (parts.length !== 8 || parts.some(part => !/^[0-9a-f]{1,4}$/.test(part))) return null;
+  return parts.reduce((total, part) => (total << 16n) | BigInt("0x" + part), 0n);
+}
+
+function ipv6InCidr(address: bigint, network: bigint, prefix: number): boolean {
+  const mask = ((1n << BigInt(prefix)) - 1n) << BigInt(128 - prefix);
+  return (address & mask) === (network & mask);
+}
+
 export function isPrivateAddress(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  const h = host.toLowerCase().replace(/^\\[|\\]$/g, "").split("%")[0];
   if (PRIVATE_HOSTS.test(h)) return true;
 
   if (h.includes(":")) {
-    if (h.startsWith("::ffff:")) {
-      const mapped = h.slice(7);
-      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(mapped)) return isPrivateAddress(mapped);
-      return true;
-    }
-    if (h === "::" || h === "::1" || h.startsWith("fc") || h.startsWith("fd") || /^fe[89ab]/.test(h) || h.startsWith("ff")) return true;
-    const first = Number.parseInt(h.split(":")[0] || "0", 16);
-    if ((first & 0xe000) !== 0x2000) return true;
-    if (h.startsWith("2001:db8") || h.startsWith("2001:10:") || h.startsWith("2001:2:")) return true;
+    const address = ipv6ToBigInt(h);
+    if (address === null) return true;
+    const globalUnicastStart = 0x20000000000000000000000000000000n; // 2000::/3
+    const globalUnicastEnd = 0x3fffffffffffffffffffffffffffffffn;
+    if (address < globalUnicastStart || address > globalUnicastEnd) return true;
+    // Special-purpose ranges inside global unicast: protocol assignments, documentation and 6to4.
+    if (ipv6InCidr(address, 0x20010000000000000000000000000000n, 23) ||
+        ipv6InCidr(address, 0x20010db8000000000000000000000000n, 32) ||
+        ipv6InCidr(address, 0x20020000000000000000000000000000n, 16) ||
+        ipv6InCidr(address, 0x3fff0000000000000000000000000000n, 20)) return true;
     return false;
   }
 
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) {
+  if (/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)) {
     const [a,b,c] = h.split(".").map(Number);
     if ([a,b,c].some(n => n < 0 || n > 255)) return true;
     if (a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) ||
         (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
         (a === 100 && b >= 64 && b <= 127) || (a === 192 && b === 0 && c === 0) ||
-        (a === 192 && b === 0 && c === 2) || (a === 198 && (b === 18 || b === 19)) ||
+        (a === 192 && b === 0 && c === 2) || (a === 192 && b === 88 && c === 99) ||
+        (a === 198 && (b === 18 || b === 19)) ||
         (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113) ||
         a === 255) return true;
   }
