@@ -311,3 +311,9 @@
   .top-brand{display:flex}
 }
 @media(max-width:380px){.top-brand>span:last-child{display:none}.topbar{gap:7px}.breadcrumbs{font-size:9px}.screen-card-actions button{font-size:8px;padding:0 7px}}
+
+
+/* Keep modal controls above the fixed mobile navigation. */
+.modal-backdrop{z-index:20}
+.mobile-nav{z-index:6}
+.mobile-panel{z-index:7}
