@@ -132,7 +132,7 @@ test("switches between dark and light themes", async ({ page }) => {
 });
 
 test("opens the JSON formatter utility", async ({ page }) => {
-  await page.goto("/tools");
+  await page.goto("/tools", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "JSON formatter" }).click();
   await page.locator(".utility-input").fill('{"ok":true,"count":2}');
   await page.getByRole("button", { name: /run utility/i }).click();
