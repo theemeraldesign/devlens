@@ -492,7 +492,7 @@ export default function App() {
   function loadImportedCurl(imported: { method: string; url: string; headers: Record<string, string>; body: string }) {
     const headers = Object.entries(imported.headers).map(([key, value]) => ({ id: uid(), key, value, enabled: true }));
     const contentType = imported.headers["content-type"] || imported.headers["Content-Type"] || "";
-    const bodyType = contentType.includes("x-www-form-urlencoded") ? "urlencoded" : contentType.includes("text/") ? "text" : "json";
+    const bodyType: ApiRequest["bodyType"] = contentType.includes("x-www-form-urlencoded") ? "urlencoded" : contentType.includes("text/") ? "text" : "json";
     setRequest({ method: imported.method as HttpMethod, url: imported.url, headers, body: imported.body, bodyType });
     setParams([{ id: uid(), key: "", value: "", enabled: true }]);
     setAuthType("No authentication"); setAuthToken(""); setBasicUsername(""); setBasicPassword(""); setApiKeyValue("");
@@ -546,7 +546,7 @@ export default function App() {
   }
 
   const shareSlug = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{8,80})$/)?.[1] ?? null;
-  if (shareSlug) return <SharedCollectionPage slug={shareSlug} onImport={(name, rows) => void importSharedCollection(name, rows as Array<Record<string, unknown>>)} />;
+  if (shareSlug) return <SharedCollectionPage slug={shareSlug} onImport={(name, rows) => void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>)} />;
 
   return <div className={dark ? "app dark" : "app light"}>
     <aside className="sidebar">
