@@ -1,0 +1,14 @@
+{
+  "name": "devlens-egress-gateway",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "guarded-fetch": "0.3.0"
+  }
+}
