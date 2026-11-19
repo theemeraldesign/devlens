@@ -61,10 +61,10 @@ async function resolvesOnlyToPublicAddresses(host: string, signal: AbortSignal):
     if (!response.ok) throw new Error("DNS validation failed");
     return response.json() as Promise<{ Status?: number; Answer?: Array<{ type: number; data: string }> }>;
   }));
-  const answers = results.flatMap(result => {
-    if (result.Status !== 0) return [];
-    return (result.Answer || []).filter(answer => answer.type === 1 || answer.type === 28).map(answer => answer.data);
-  });
+  if (results.some(result => result.Status !== 0)) return false;
+  const answers = results.flatMap(result =>
+    (result.Answer || []).filter(answer => answer.type === 1 || answer.type === 28).map(answer => answer.data)
+  );
   if (!answers.length) return false;
   return answers.every(address => !isPrivateAddress(address));
 }
