@@ -47,10 +47,10 @@ export default function AuthModal({ onClose, onAuthenticated }: Props) {
     <section ref={dialogRef} className="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={event => event.stopPropagation()}>
       <div className="modal-title"><b id="auth-title">{mode === "signin" ? "Welcome back" : "Create your DevLens account"}</b><button onClick={onClose} aria-label="Close"><X size={16}/></button></div>
       <p>{mode === "signin" ? "Sign in to sync collections and environments across devices." : "Your collections stay private until you choose to share them."}</p>
-      <label>Email address</label>
-      <input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com"/>
-      <label>Password</label>
-      <input type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} value={password} onChange={event => setPassword(event.target.value)} placeholder="At least 8 characters" onKeyDown={event => event.key === "Enter" && submit()}/>
+      <label htmlFor="account-email">Email address</label>
+      <input id="account-email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com"/>
+      <label htmlFor="account-password">Password</label>
+      <input id="account-password" type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} value={password} onChange={event => setPassword(event.target.value)} placeholder="At least 8 characters" onKeyDown={event => event.key === "Enter" && submit()}/>
       {message && <div className="auth-message" role="status">{message}</div>}
       <button className="send-button modal-submit" disabled={busy} onClick={submit}>{busy ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}</button>
       <button className="auth-switch" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }}>{mode === "signin" ? "New to DevLens? Create an account" : "Already have an account? Sign in"}</button>
