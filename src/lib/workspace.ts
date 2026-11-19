@@ -5,7 +5,7 @@ export type SavedRequest = {
   url: string;
   headers: { key: string; value: string; enabled: boolean }[];
   body: string;
-  bodyType?: "json" | "text" | "urlencoded";
+  bodyType?: "json" | "text" | "urlencoded" | "formdata";
   createdAt: string;
 };
 
