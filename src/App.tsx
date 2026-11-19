@@ -38,6 +38,7 @@ export default function App() {
   const [editingEnvironment, setEditingEnvironment] = useState<LocalEnvironment | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [showTools, setShowTools] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<"collections" | "environments" | "history" | "utilities" | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [activeUtility, setActiveUtility] = useState<string | null>(null);
@@ -343,6 +344,21 @@ export default function App() {
       </section>
       <footer className="footer"><span>DEVLENS <span>·</span> EARLY ACCESS</span><span>Made for developers who care about the details.</span><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a></footer>
     </main>
+
+    {mobilePanel && <div className="mobile-panel">
+      <div className="mobile-panel-head"><b>{mobilePanel==="collections"?"Collections":mobilePanel==="environments"?"Environments":mobilePanel==="history"?"Request history":"Developer utilities"}</b><button onClick={()=>setMobilePanel(null)} aria-label="Close panel"><X size={16}/></button></div>
+      {mobilePanel==="collections" && <><button className="mobile-panel-action" onClick={()=>{setShowNew(true);setMobilePanel(null);}}><Plus size={14}/> New collection</button>{collections.length ? collections.map(collection=><div className="mobile-panel-group" key={collection.id}><button className={activeCollectionId===collection.id?"mobile-panel-item active":"mobile-panel-item"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={14}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="mobile-saved-request" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);setMobilePanel(null);}}><span>{saved.method}</span>{saved.name}</button>)}</div>) : <p className="mobile-panel-empty">No collections yet. Create one to save requests.</p>}</>}
+      {mobilePanel==="environments" && <><button className="mobile-panel-action" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);setMobilePanel(null);}}><Plus size={14}/> New environment</button>{environments.length ? environments.map(environment=><div className="mobile-panel-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"mobile-panel-item active":"mobile-panel-item"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={14}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="mobile-saved-request" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);setMobilePanel(null);}}>Edit variables</button></div>) : <p className="mobile-panel-empty">No environments yet. Add one to use variables.</p>}</>}
+      {mobilePanel==="history" && <>{history.length ? history.map((url,index)=><button className="mobile-panel-item" key={url+index} onClick={()=>{updateRequest({url});setMobilePanel(null);}}><Clock3 size={14}/><span>{url}</span></button>) : <p className="mobile-panel-empty">Your recent requests will appear here.</p>}</>}
+      {mobilePanel==="utilities" && <div className="mobile-utility-grid">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL exporter"].map(tool=><button key={tool} onClick={()=>{setActiveUtility(tool);setMobilePanel(null);}}>{tool}</button>)}</div>}
+    </div>}
+    <nav className="mobile-nav" aria-label="Workspace navigation">
+      <button className={!mobilePanel?"active":""} onClick={()=>setMobilePanel(null)}><Activity size={18}/><span>Workspace</span></button>
+      <button className={mobilePanel==="collections"?"active":""} onClick={()=>{setActiveNav("Collections");setMobilePanel(mobilePanel==="collections"?null:"collections");}}><Folder size={18}/><span>Collections</span></button>
+      <button className={mobilePanel==="environments"?"active":""} onClick={()=>{setActiveNav("Environments");setMobilePanel(mobilePanel==="environments"?null:"environments");}}><Globe2 size={18}/><span>Environments</span></button>
+      <button className={mobilePanel==="history"?"active":""} onClick={()=>{setActiveNav("History");setMobilePanel(mobilePanel==="history"?null:"history");}}><History size={18}/><span>History</span></button>
+      <button className={mobilePanel==="utilities"?"active":""} onClick={()=>{setActiveNav("Utilities");setMobilePanel(mobilePanel==="utilities"?null:"utilities");}}><Braces size={18}/><span>Tools</span></button>
+    </nav>
     {showEnvironmentModal && <EnvironmentModal initial={editingEnvironment} onClose={() => setShowEnvironmentModal(false)} onSave={saveEnvironment} onDelete={deleteEnvironment} />}
     {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
     {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
