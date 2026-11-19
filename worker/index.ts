@@ -79,11 +79,13 @@ export function buildOutboundBody(method: string, bodyType: ProxyInput["bodyType
     if (!Array.isArray(rows) || rows.length > 100) throw new Error("Form-data must contain no more than 100 fields.");
     const form = new FormData();
     for (const row of rows) {
-      if (!row || typeof row !== "object" || typeof row.key !== "string" || typeof row.value !== "string" ||
-          !row.key.trim() || row.key.length > 256 || row.value.length > 100_000) {
+      if (!row || typeof row !== "object") throw new Error("Each form-data field needs a key and text value.");
+      const field = row as Record<string, unknown>;
+      if (typeof field.key !== "string" || typeof field.value !== "string" ||
+          !field.key.trim() || field.key.length > 256 || field.value.length > 100_000) {
         throw new Error("Each form-data field needs a key and text value. Keys are limited to 256 characters and values to 100 KB.");
       }
-      form.append(row.key, row.value);
+      form.append(field.key, field.value);
     }
     return form;
   }
