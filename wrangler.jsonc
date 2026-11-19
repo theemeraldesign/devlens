@@ -3,22 +3,39 @@
   "name": "devlens",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-19",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
   "observability": {
     "enabled": true,
-    "traces": { "enabled": true }
+    "traces": {
+      "enabled": true
+    }
   },
   "ratelimits": [
-    { "name": "API_RATE_LIMITER", "namespace_id": "2026111901", "simple": { "limit": 60, "period": 60 } }
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "2026111901",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
   ],
   "vars": {
     "MAX_REQUEST_BYTES": "1048576",
     "MAX_RESPONSE_BYTES": "5242880",
     "REQUEST_TIMEOUT_MS": "20000",
     "PROXY_EGRESS_ENABLED": "false"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "devlens.cc.cd",
+      "custom_domain": true
+    }
+  ]
 }
