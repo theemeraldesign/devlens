@@ -91,3 +91,9 @@
 .collection-row-actions button:hover{background:var(--panel2);color:var(--text)}
 .collection-row-actions button:last-child:hover{color:var(--danger,#df6868)}
 @media(max-width:760px){.collection-row-actions{opacity:1}.collection-row-actions button{padding:5px 4px;font-size:8px}}
+
+.history-panel{display:grid;gap:6px;margin-top:8px}
+.history-tools{display:flex;gap:5px;padding:0 4px}
+.history-tools input{min-width:0;flex:1;height:30px;border:1px solid var(--line);border-radius:5px;background:var(--input);color:var(--text);padding:0 8px;font:9px "DM Sans",sans-serif}
+.history-tools button{border:1px solid var(--line);border-radius:5px;background:var(--panel2);color:var(--muted);padding:0 8px;font:9px "DM Sans",sans-serif;cursor:pointer}
+.history-tools button:disabled{opacity:.4;cursor:not-allowed}
