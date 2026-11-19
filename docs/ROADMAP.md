@@ -18,10 +18,13 @@
 - [x] Bearer, Basic and API-key request authentication.
 - [x] Response status, timing, size, body and headers.
 - [x] Cancel in-flight requests and resend requests.
-- [ ] Multipart form data and URL-encoded body editors.
+- [x] JSON, text and URL-encoded body modes.
+- [ ] Multipart form-data editor.
 - [x] Environment variable interpolation.
-- [ ] Persist and search request history.
-- [ ] Collection rename, delete, duplicate and export/import.
+- [x] Persist request history locally and sync it across devices.
+- [ ] Search and filter request history.
+- [x] Collection JSON import/export.
+- [ ] Collection rename, delete and duplicate.
 
 ## Developer utilities
 - [x] JSON formatter.
