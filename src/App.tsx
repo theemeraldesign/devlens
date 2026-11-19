@@ -51,7 +51,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"body" | "headers" | "params" | "auth">("headers");
   const [responseTab, setResponseTab] = useState<"pretty" | "raw" | "headers">("pretty");
-  const [activeNav, setActiveNav] = useState("Collections");
+  const [activeNav, setActiveNav] = useState(() => { const page = pageFromPath(window.location.pathname); return page === "workspace" ? "Collections" : page === "tools" ? "Utilities" : page[0].toUpperCase()+page.slice(1); });
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromPath(window.location.pathname));
   const [menuOpen, setMenuOpen] = useState(false);
   const [collections, setCollections] = useState<LocalCollection[]>(() => readGuestCollections());
