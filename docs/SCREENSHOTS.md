@@ -1,6 +1,6 @@
 # DevLens portfolio screenshots
 
-The release workflow captures these images from the live production application at https://devlens.cc.cd using the dedicated authenticated E2E account. It uses realistic, non-sensitive demo content and masks the account label before capture.
+The production deployment workflow captures these images from the live production application at https://devlens.cc.cd using the dedicated authenticated E2E account. It uses realistic, non-sensitive demo content and masks the account label before capture.
 
 Images are stored in `docs/screenshots/` and embedded in the root README.
 
