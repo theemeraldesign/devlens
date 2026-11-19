@@ -10,9 +10,9 @@ The first application foundation is in place:
 - Responsive request studio with seven HTTP methods.
 - Query parameters, editable headers, request body and authentication-type selector.
 - Response status, duration, size, pretty/raw body and response headers.
-- Guest collections, saved requests and private environments stored in the browser.
+- Guest collections, saved requests, private environments and request history stored in the browser.
 - Environment variable interpolation in URLs, headers, query parameters and request bodies.
-- Email/password account flow through Supabase Auth, with cloud collection and environment sync.
+- Email/password account flow through Supabase Auth, with cloud collection, environment and redacted request-history sync.
 - Guest-to-account collection import. Local copies are retained after import.
 - Initial developer utilities: JSON formatting, JWT decoding, Base64, URL encoding, UUID generation and cURL export helpers.
 - Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks.
