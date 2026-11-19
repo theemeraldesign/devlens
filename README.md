@@ -93,6 +93,17 @@ Migrations live in `supabase/migrations`. Private tables use owner-scoped row-le
 
 Cloudflare Worker configuration lives in `wrangler.jsonc`. GitHub Actions run typecheck, unit tests, production build, gateway tests, and Playwright checks before deployment. The Worker and static assets deploy to Cloudflare. The egress gateway deploys from the same repository to Vercel. See [deployment](docs/DEPLOYMENT.md) and [security](docs/SECURITY.md).
 
+## Project documentation
+
+- [Setup guide](docs/SETUP.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Security model](docs/SECURITY.md)
+- [Public collection sharing](docs/SHARING.md)
+- [Completion roadmap](docs/ROADMAP.md)
+- [Production release record](docs/RELEASE.md)
+- [Portfolio screenshot capture guide](docs/SCREENSHOTS.md)
+
 ## License
 
 MIT
