@@ -101,7 +101,10 @@ Deno.serve(async (request: Request) => {
 
   let payload: { collectionId?: string; action?: string };
   try { payload = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400, headers: corsHeaders }); }
-  if (!payload.collectionId || !/^[0-9a-f-]{36}$/i.test(payload.collectionId)) return Response.json({ error: "A valid collection ID is required." }, { status: 400, headers: corsHeaders });
+  const allowedActions = ["list", "status", "publish", "unpublish"];
+  if (!allowedActions.includes(payload.action ?? "")) {
+    return Response.json({ error: "Unsupported publishing action." }, { status: 400, headers: corsHeaders });
+  }
 
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
   if (payload.action === "list") {
@@ -110,6 +113,11 @@ Deno.serve(async (request: Request) => {
     if (error) return Response.json({ error: "Unable to load publication status." }, { status: 500, headers: corsHeaders });
     return Response.json({ publishedCollections: publishedCollections ?? [] }, { headers: corsHeaders });
   }
+
+  if (!payload.collectionId || !/^[0-9a-f-]{36}$/i.test(payload.collectionId)) {
+    return Response.json({ error: "A valid collection ID is required." }, { status: 400, headers: corsHeaders });
+  }
+
   if (payload.action === "status") {
     const { data: existing, error } = await admin.from("public_collection_snapshots")
       .select("slug").eq("collection_id", payload.collectionId).eq("owner_id", authData.user.id).maybeSingle();
