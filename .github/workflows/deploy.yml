@@ -25,8 +25,8 @@ jobs:
           npm test
           npm run build
         env:
-          VITE_SUPABASE_URL: \${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: \${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Run end-to-end tests
@@ -34,6 +34,6 @@ jobs:
       - name: Deploy Worker and static assets
         uses: cloudflare/wrangler-action@v4
         with:
-          apiToken: \${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
