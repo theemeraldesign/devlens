@@ -217,6 +217,7 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   await expect(copyAction).toBeVisible();
   await copyAction.click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.locator(".import-banner")).toContainText("Collection deleted.");
   await expect(page.locator(".collection-list")).not.toContainText(copyName);
   await renamedCard.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
@@ -402,7 +403,7 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   const publishResponsePromise = page.waitForResponse(response => {
     if (!response.url().includes("/functions/v1/publish-collection")) return false;
     try {
-      return JSON.parse(response.request().postData() || "{}").action === "publish";
+      return response.ok() && JSON.parse(response.request().postData() || "{}").action === "publish";
     } catch { return false; }
   });
   await originalCard.getByRole("button", { name: "Share", exact: true }).click();
