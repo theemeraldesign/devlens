@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import { Plus, Trash2, X } from "lucide-react";
 import type { EnvironmentVariable, LocalEnvironment } from "../lib/environments";
 
@@ -11,7 +12,8 @@ type Props = {
 
 const newVariable = (): EnvironmentVariable => ({ id: crypto.randomUUID(), key: "", value: "", enabled: true });
 
-export default function EnvironmentModal({ initial, onClose, onSave, onDelete }: Props) {
+export default function EnvironmentModal({
+  const dialogRef = useModalAccessibility(onClose); initial, onClose, onSave, onDelete }: Props) {
   const [name, setName] = useState(initial?.name ?? "New environment");
   const [variables, setVariables] = useState<EnvironmentVariable[]>(initial?.variables ?? [newVariable()]);
   const [error, setError] = useState("");
@@ -34,7 +36,7 @@ export default function EnvironmentModal({ initial, onClose, onSave, onDelete }:
   }
 
   return <div className="modal-backdrop" onClick={onClose}>
-    <section className="modal environment-modal" role="dialog" aria-modal="true" aria-labelledby="environment-title" onClick={event => event.stopPropagation()}>
+    <section ref={dialogRef} className="modal environment-modal" role="dialog" aria-modal="true" aria-labelledby="environment-title" onClick={event => event.stopPropagation()}>
       <div className="modal-title"><div><span className="utility-kicker">WORKSPACE ENVIRONMENT</span><b id="environment-title">{initial ? "Edit environment" : "Create environment"}</b></div><button onClick={onClose} aria-label="Close"><X size={16}/></button></div>
       <label>ENVIRONMENT NAME</label>
       <input className="environment-name" value={name} onChange={event => setName(event.target.value)} placeholder="Development"/>
