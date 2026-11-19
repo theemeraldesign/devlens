@@ -4,6 +4,7 @@ import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type H
 import { readGuestCollections, writeGuestCollections, type LocalCollection } from "./lib/workspace";
 import { supabase } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
+import UtilityModal from "./components/UtilityModal";
 
 const uid = () => crypto.randomUUID();
 const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "application/json", enabled: true }];
@@ -27,6 +28,7 @@ export default function App() {
   const [showTools, setShowTools] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [activeUtility, setActiveUtility] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [showImportPrompt, setShowImportPrompt] = useState(false);
@@ -118,7 +120,7 @@ export default function App() {
       <div className="side-label">DEVELOPER TOOLS</div>
       <nav className="side-nav">
         <button className={showTools ? "active" : ""} onClick={() => setShowTools(v=>!v)}><Braces size={17}/>Utilities<ChevronDown size={14} className="nav-chevron"/></button>
-        {showTools && <div className="tool-subnav"><button>JSON formatter</button><button>JSON diff</button><button>JWT inspector</button><button>Base64 tools</button><button>cURL converter</button></div>}
+        {showTools && <div className="tool-subnav">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL exporter"].map(tool=><button key={tool} onClick={()=>setActiveUtility(tool)}>{tool}</button>)}</div>}
       </nav>
       <div className="sidebar-bottom">
         <div className="secure-note"><ShieldCheck size={16}/><span><b>Private by design</b><small>Secrets stay in your workspace.</small></span></div>
@@ -152,6 +154,7 @@ export default function App() {
       </section>
       <footer className="footer"><span>DEVLENS <span>·</span> EARLY ACCESS</span><span>Made for developers who care about the details.</span><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a></footer>
     </main>
+    {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
     {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if (collections.length) setShowImportPrompt(true); }} />}
     {showNew && <div className="modal-backdrop" onClick={()=>setShowNew(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title"><b>Create a collection</b><button onClick={()=>setShowNew(false)}><X size={16}/></button></div><p>Give your requests a home.</p><input value={collectionName} onChange={e=>setCollectionName(e.target.value)} placeholder="Collection name"/><button className="send-button modal-submit" onClick={createCollection}>Create collection</button></div></div>}
   </div>;
