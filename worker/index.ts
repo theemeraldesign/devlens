@@ -106,6 +106,8 @@ async function proxy(request: Request, env: Env): Promise<Response> {
   if (declaredLength > requestLimit) return json({ error: "Request payload is too large." }, 413);
 
   const controller = new AbortController();
+  const abortFromClient = () => controller.abort();
+  request.signal.addEventListener("abort", abortFromClient, { once: true });
   const timeout = setTimeout(() => controller.abort(), Math.min(Number(env.REQUEST_TIMEOUT_MS || 20000), 30000));
   try {
     let input: ProxyInput;
@@ -173,6 +175,7 @@ async function proxy(request: Request, env: Env): Promise<Response> {
     return json({ error: message }, 502);
   } finally {
     clearTimeout(timeout);
+    request.signal.removeEventListener("abort", abortFromClient);
   }
 }
 
