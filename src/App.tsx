@@ -363,10 +363,12 @@ export default function App() {
     const status = (first.error as unknown as { context?: Response } | null)?.context?.status;
     if (!first.error || (status !== undefined && status !== 401)) return first;
     const { data: refreshed, error: refreshError } = await supabase!.auth.refreshSession();
-    if (refreshError || !refreshed.session) return first;
+    const retrySession = refreshed.session ?? (await supabase!.auth.getSession()).data.session;
+    if (refreshError && !retrySession) return first;
+    if (!retrySession) return first;
     return supabase!.functions.invoke("publish-collection", {
       body,
-      headers: { Authorization: `Bearer ${refreshed.session.access_token}` }
+      headers: { Authorization: `Bearer ${retrySession.access_token}` }
     });
   }
 
