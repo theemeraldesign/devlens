@@ -41,7 +41,7 @@ export function exportCurl(input: { method: string; url: string; headers: Record
 }
 
 export function safePublicCollection(value: unknown): unknown {
-  const blocked = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api-key|password|secret|client_secret)$/i;
+  const blocked = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|x-auth-token)$/i;
   const visit = (input: unknown): unknown => {
     if (Array.isArray(input)) {
       return input
