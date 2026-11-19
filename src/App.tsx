@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, Settings2, ShieldCheck, Sun, X } from "lucide-react";
 import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type HttpMethod } from "./lib/request";
 import { readGuestCollections, writeGuestCollections, type LocalCollection } from "./lib/workspace";
+import { readGuestEnvironments, resolveEnvironmentVariables, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
 import { redactUrl, safeSavedHeaders } from "./lib/utilities";
 import { supabase } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
 import UtilityModal from "./components/UtilityModal";
+import EnvironmentModal from "./components/EnvironmentModal";
 
 const uid = () => crypto.randomUUID();
 const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "application/json", enabled: true }];
@@ -30,6 +32,10 @@ export default function App() {
   const [collections, setCollections] = useState<LocalCollection[]>(() => readGuestCollections());
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(() => readGuestCollections()[0]?.id ?? null);
   const [collectionName, setCollectionName] = useState(() => readGuestCollections()[0]?.name ?? "My workspace");
+  const [environments, setEnvironments] = useState<LocalEnvironment[]>(() => readGuestEnvironments());
+  const [activeEnvironmentId, setActiveEnvironmentId] = useState<string | null>(() => readGuestEnvironments()[0]?.id ?? null);
+  const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
+  const [editingEnvironment, setEditingEnvironment] = useState<LocalEnvironment | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [showTools, setShowTools] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -54,16 +60,36 @@ export default function App() {
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
-      if (user && collections.length && !hasImportedGuestData(user.id)) setShowImportPrompt(true);
+      if (user && (collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
-      if (session?.user && collections.length && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true);
+      if (session?.user && (collections.length || environments.length) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true);
       if (!session) setShowImportPrompt(false);
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  const activeEnvironment = environments.find(environment => environment.id === activeEnvironmentId);
+  function saveEnvironment(environment: LocalEnvironment) {
+    const next = environments.some(item => item.id === environment.id)
+      ? environments.map(item => item.id === environment.id ? environment : item)
+      : [environment, ...environments];
+    setEnvironments(next);
+    writeGuestEnvironments(next);
+    setActiveEnvironmentId(environment.id);
+    setShowEnvironmentModal(false);
+    setEditingEnvironment(null);
+  }
+  function deleteEnvironment(id: string) {
+    const next = environments.filter(environment => environment.id !== id);
+    setEnvironments(next);
+    writeGuestEnvironments(next);
+    if (activeEnvironmentId === id) setActiveEnvironmentId(next[0]?.id ?? null);
+    setShowEnvironmentModal(false);
+    setEditingEnvironment(null);
+  }
 
   const prettyBody = useMemo(() => {
     if (!response?.body) return "";
@@ -94,16 +120,27 @@ export default function App() {
   }
   const updateHeader = (id: string, patch: Partial<HeaderPair>) => updateRequest({ headers: request.headers.map(h => h.id === id ? { ...h, ...patch } : h) });
   async function importGuestData() {
-    if (!supabase || !accountId || !collections.length) return;
+    if (!supabase || !accountId || (!collections.length && !environments.length)) return;
     setAccountNotice("");
-    const rows = collections.map(({ id, name, requests }) => ({ owner_id: accountId, guest_id: id, name, content: { requests } }));
-    const { error: importError } = await supabase.from("collections").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
-    if (importError) setAccountNotice(importError.message);
-    else {
-      try { localStorage.setItem(guestImportKey(accountId), "1"); } catch { /* Local copies remain safe if storage is unavailable. */ }
-      setShowImportPrompt(false);
-      setAccountNotice("Guest collections imported. Your local copies remain on this device.");
+    if (collections.length) {
+      const rows = collections.map(({ id, name, requests }) => ({ owner_id: accountId, guest_id: id, name, content: { requests } }));
+      const { error: importError } = await supabase.from("collections").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
+      if (importError) { setAccountNotice(importError.message); return; }
     }
+    if (environments.length) {
+      const rows = environments.map(environment => ({
+        owner_id: accountId,
+        guest_id: environment.id,
+        name: environment.name,
+        variables: Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value])),
+        is_active: false
+      }));
+      const { error: importError } = await supabase.from("environments").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
+      if (importError) { setAccountNotice(importError.message); return; }
+    }
+    try { localStorage.setItem(guestImportKey(accountId), "1"); } catch { /* Local copies remain safe if storage is unavailable. */ }
+    setShowImportPrompt(false);
+    setAccountNotice("Guest collections and environments imported. Your local copies remain on this device.");
   }
   async function signOut() {
     if (!supabase) return;
@@ -120,16 +157,17 @@ export default function App() {
     setAbortController(controller);
     setBusy(true); setError(""); setResponse(null);
     try {
-      const finalUrl = new URL(request.url);
-      params.filter(p => p.enabled && p.key.trim()).forEach(p => finalUrl.searchParams.set(p.key, p.value));
-      const outgoingHeaders = [...request.headers];
-      if (authType === "Bearer token" && authToken) outgoingHeaders.push({ id: uid(), key: "Authorization", value: "Bearer " + authToken, enabled: true });
-      if (authType === "Basic auth" && basicUsername) outgoingHeaders.push({ id: uid(), key: "Authorization", value: "Basic " + btoa(basicUsername + ":" + basicPassword), enabled: true });
+      const resolve = (value: string) => resolveEnvironmentVariables(value, activeEnvironment);
+      const finalUrl = new URL(resolve(request.url));
+      params.filter(p => p.enabled && p.key.trim()).forEach(p => finalUrl.searchParams.set(resolve(p.key), resolve(p.value)));
+      const outgoingHeaders = request.headers.map(header => ({ ...header, key: resolve(header.key), value: resolve(header.value) }));
+      if (authType === "Bearer token" && authToken) outgoingHeaders.push({ id: uid(), key: "Authorization", value: "Bearer " + resolve(authToken), enabled: true });
+      if (authType === "Basic auth" && basicUsername) outgoingHeaders.push({ id: uid(), key: "Authorization", value: "Basic " + btoa(resolve(basicUsername) + ":" + resolve(basicPassword)), enabled: true });
       if (authType === "API key" && apiKeyName && apiKeyValue) {
-        if (apiKeyLocation === "Header") outgoingHeaders.push({ id: uid(), key: apiKeyName, value: apiKeyValue, enabled: true });
-        else finalUrl.searchParams.set(apiKeyName, apiKeyValue);
+        if (apiKeyLocation === "Header") outgoingHeaders.push({ id: uid(), key: resolve(apiKeyName), value: resolve(apiKeyValue), enabled: true });
+        else finalUrl.searchParams.set(resolve(apiKeyName), resolve(apiKeyValue));
       }
-      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString() }, controller.signal);
+      const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString(), body: resolve(request.body) }, controller.signal);
       setResponse(result);
       setHistory(items => [redactUrl(request.url), ...items.filter(x => x !== redactUrl(request.url))].slice(0, 12));
     } catch (e) { setError(e instanceof DOMException && e.name === "AbortError" ? "Request cancelled." : e instanceof Error ? e.message : "Request failed."); }
@@ -145,6 +183,7 @@ export default function App() {
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
+      {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>setActiveEnvironmentId(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
       {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map((url,index)=><button key={url+index} onClick={()=>updateRequest({url})}>{url}</button>) : <button disabled>No requests yet</button>}</div>}
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
@@ -161,8 +200,8 @@ export default function App() {
     <main className="main">
       <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><b>{activeNav}</b></div><div className="top-actions"><span className="connection"><i/> All systems operational</span><button className="icon-button" title="Settings"><Settings2 size={17}/></button><button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><button className="upgrade-button" onClick={()=>setShowNew(true)}><Plus size={15}/> New collection</button></div></header>
 
-      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> API WORKSPACE <span className="eyebrow-line"/></div><h1>Request studio<span>.</span></h1><p>Build, send and inspect HTTP requests with clarity.</p></div><div className="heading-meta"><span className="live-dot"/> Guest mode <span className="meta-divider"/> <kbd>⌘</kbd><kbd>K</kbd></div></section>
-      {showImportPrompt && <div className="import-banner"><div><b>Guest workspace data found</b><span>Import {collections.length} local collection(s) into your account. Local copies will stay on this device.</span></div><button onClick={importGuestData}>Import collections</button><button className="dismiss-import" onClick={() => setShowImportPrompt(false)} aria-label="Dismiss"><X size={14}/></button></div>}
+      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> API WORKSPACE <span className="eyebrow-line"/></div><h1>Request studio<span>.</span></h1><p>Build, send and inspect HTTP requests with clarity.</p></div><div className="heading-meta"><span className="live-dot"/> {accountEmail ? "Account" : "Guest mode"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"} <span className="meta-divider"/> <kbd>⌘</kbd><kbd>K</kbd></div></section>
+      {showImportPrompt && <div className="import-banner"><div><b>Guest workspace data found</b><span>Import {collections.length} collection(s) and {environments.length} environment(s) into your account. Local copies will stay on this device.</span></div><button onClick={importGuestData}>Import collections</button><button className="dismiss-import" onClick={() => setShowImportPrompt(false)} aria-label="Dismiss"><X size={14}/></button></div>}
       {accountNotice && <div className="import-banner"><span>{accountNotice}</span><button className="dismiss-import" onClick={() => setAccountNotice("")} aria-label="Dismiss"><X size={14}/></button></div>}
 
       <section className="request-card">
@@ -184,6 +223,7 @@ export default function App() {
       </section>
       <footer className="footer"><span>DEVLENS <span>·</span> EARLY ACCESS</span><span>Made for developers who care about the details.</span><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a></footer>
     </main>
+    {showEnvironmentModal && <EnvironmentModal initial={editingEnvironment} onClose={() => setShowEnvironmentModal(false)} onSave={saveEnvironment} onDelete={deleteEnvironment} />}
     {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
     {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if (collections.length && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
     {showNew && <div className="modal-backdrop" onClick={()=>setShowNew(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title"><b>Create a collection</b><button onClick={()=>setShowNew(false)}><X size={16}/></button></div><p>Give your requests a home.</p><input value={collectionName} onChange={e=>setCollectionName(e.target.value)} placeholder="Collection name"/><button className="send-button modal-submit" onClick={createCollection}>Create collection</button></div></div>}
