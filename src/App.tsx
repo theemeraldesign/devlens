@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, ShieldCheck, Sun, X, Download, UserRound } from "lucide-react";
+import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, ShieldCheck, Sun, X, Download, UserRound, Menu, ChevronRight, Settings, LogOut } from "lucide-react";
 import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type HttpMethod } from "./lib/request";
 import { readGuestCollections, writeGuestCollections, type LocalCollection, type SavedRequest } from "./lib/workspace";
 import { readActiveEnvironmentId, readGuestEnvironments, resolveEnvironmentVariables, writeActiveEnvironmentId, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
@@ -17,6 +17,18 @@ const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "applic
 const initialRequest: ApiRequest = { method: "GET", url: "https://jsonplaceholder.typicode.com/posts/1", headers: starterHeaders, body: "", bodyType: "json" };
 const methods: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
 const workspaceNav = [{ name: "Collections", icon: Folder }, { name: "Environments", icon: Globe2 }, { name: "History", icon: History }] as const;
+type AppPage = "workspace" | "collections" | "environments" | "history" | "tools";
+const pageFromPath = (path: string): AppPage => {
+  if (path.startsWith("/collections")) return "collections";
+  if (path.startsWith("/environments")) return "environments";
+  if (path.startsWith("/history")) return "history";
+  if (path.startsWith("/tools")) return "tools";
+  return "workspace";
+};
+const pageTitles: Record<AppPage, string> = {
+  workspace: "Request studio", collections: "Collections",
+  environments: "Environments", history: "Request history", tools: "Developer tools"
+};
 const guestImportKey = (userId: string) => `devlens.guest-imported.${userId}`;
 function importedGuestIds(userId: string): Set<string> {
   try {
@@ -40,6 +52,8 @@ export default function App() {
   const [tab, setTab] = useState<"body" | "headers" | "params" | "auth">("headers");
   const [responseTab, setResponseTab] = useState<"pretty" | "raw" | "headers">("pretty");
   const [activeNav, setActiveNav] = useState("Collections");
+  const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromPath(window.location.pathname));
+  const [menuOpen, setMenuOpen] = useState(false);
   const [collections, setCollections] = useState<LocalCollection[]>(() => readGuestCollections());
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(() => readGuestCollections()[0]?.id ?? null);
   const [collectionName, setCollectionName] = useState(() => readGuestCollections()[0]?.name ?? "My workspace");
@@ -157,6 +171,22 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const onPopState = () => { setCurrentPage(pageFromPath(window.location.pathname)); setMenuOpen(false); };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function navigateTo(page: AppPage) {
+    const paths: Record<AppPage, string> = { workspace: "/", collections: "/collections", environments: "/environments", history: "/history", tools: "/tools" };
+    if (window.location.pathname !== paths[page]) window.history.pushState({}, "", paths[page]);
+    setCurrentPage(page);
+    setActiveNav(page === "tools" ? "Utilities" : page === "workspace" ? "Collections" : page[0].toUpperCase()+page.slice(1));
+    setMenuOpen(false);
+    setMobilePanel(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const activeEnvironment = environments.find(environment => environment.id === activeEnvironmentId);
   async function saveEnvironment(environment: LocalEnvironment) {
@@ -394,6 +424,18 @@ export default function App() {
     setAccountNotice("Collection deleted.");
   }
 
+  function exportCollectionById(id: string) {
+    const collection = collections.find(item => item.id === id);
+    if (!collection) return;
+    const blob = new Blob([JSON.stringify({ format: "devlens-collection", version: 1, name: collection.name, requests: collection.requests }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".devlens.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportActiveCollection() {
     const collection = collections.find(item => item.id === activeCollectionId);
     if (!collection) { setAccountNotice("Select a collection before exporting."); return; }
@@ -590,7 +632,7 @@ export default function App() {
       <div className="workspace-switch"><div className="workspace-avatar">{collectionName.slice(0,1).toUpperCase() || "D"}</div><span><b>{collectionName}</b><small>{accountEmail ? "Synced account workspace" : "Local guest workspace"}</small></span></div>
       <div className="side-label">WORKSPACE</div>
       <nav className="side-nav" aria-label="Primary workspace navigation">
-        {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
+        {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={currentPage===name.toLowerCase() ? "active" : ""} onClick={() => navigateTo(name.toLowerCase() as AppPage)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><div className="collection-row"><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button><div className="collection-row-actions"><button title={`Rename ${collection.name}`} aria-label={`Rename ${collection.name}`} onClick={()=>void renameCollection(collection.id)}>Rename</button><button title={`Duplicate ${collection.name}`} aria-label={`Duplicate ${collection.name}`} onClick={()=>void duplicateCollection(collection.id)}>Copy</button><button title={`Delete ${collection.name}`} aria-label={`Delete ${collection.name}`} onClick={()=>void deleteCollection(collection.id)}>Delete</button><button title={`Publish ${collection.name}`} aria-label={`Publish ${collection.name}`} onClick={()=>void publishCollection(collection.id)}>Share</button>{publishedSlugs[collection.id] && <button title={`Unpublish ${collection.name}`} aria-label={`Unpublish ${collection.name}`} onClick={()=>void unpublishCollection(collection.id)}>Unpublish</button>}</div></div>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,bodyType:saved.bodyType ?? "json",headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
       {activeNav === "Collections" && <div className="collection-actions"><button onClick={exportActiveCollection} disabled={!activeCollectionId}>Export selected</button><label>Import JSON<input type="file" accept=".json,application/json" onChange={event => { void importCollectionFile(event.target.files?.[0]); event.currentTarget.value = ""; }}/></label></div>}
@@ -599,7 +641,7 @@ export default function App() {
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
       <nav className="side-nav">
-        <button className={showTools ? "active" : ""} onClick={() => setShowTools(v=>!v)}><Braces size={17}/>Utilities<ChevronDown size={14} className="nav-chevron"/></button>
+        <button className={showTools ? "active" : ""} onClick={() => navigateTo("tools")}><Braces size={17}/>Utilities<ChevronDown size={14} className="nav-chevron"/></button>
         {showTools && <div className="tool-subnav">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL importer","cURL exporter"].map(tool=><button key={tool} onClick={()=>setActiveUtility(tool)}>{tool}</button>)}</div>}
       </nav>
       <div className="sidebar-bottom">
@@ -609,32 +651,49 @@ export default function App() {
     </aside>
 
     <main className="main" id="request-workspace">
-      <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><b>Request studio</b></div><div className="top-actions"><span className="connection"><i/> Workspace ready</span><button className="account-button" onClick={()=>accountId ? signOut() : setShowAuth(true)} aria-label={accountId ? "Sign out of DevLens" : "Sign in or create a DevLens account"}><UserRound size={14}/><span>{accountId ? "Sign out" : "Sign in"}</span></button><button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><button className="upgrade-button" onClick={()=>setShowNew(true)}><Plus size={15}/> New collection</button></div></header>
+      <header className="topbar">
+        <button className="top-brand" onClick={()=>navigateTo("workspace")} aria-label="DevLens home"><span className="top-brand-mark"><Activity size={17}/></span><span>dev<span>lens</span></span></button>
+        <div className="breadcrumbs"><ChevronRight size={13}/><b>{pageTitles[currentPage]}</b></div>
+        <div className="top-actions"><span className="connection"><i/> Workspace ready</span>
+          <button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button>
+          <div className="menu-anchor"><button className={menuOpen?"menu-trigger open":"menu-trigger"} aria-label="Open main menu" aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}><Menu size={19}/></button>
+          {menuOpen && <><button className="menu-scrim" aria-label="Close menu" onClick={()=>setMenuOpen(false)}></button><div className="account-menu">
+            <div className="menu-account"><span className="menu-avatar">{accountEmail?accountEmail.slice(0,1).toUpperCase():"G"}</span><span><b>{accountEmail??"Guest workspace"}</b><small>{accountEmail?"Signed in":"Local device session"}</small></span></div>
+            <button onClick={()=>{setMenuOpen(false);accountId?signOut():setShowAuth(true);}}><UserRound size={16}/>{accountId?"Sign out":"Sign in / Create account"}<ChevronRight size={14}/></button>
+            <div className="menu-divider"/>
+            {(["workspace","collections","environments","history","tools"] as AppPage[]).map(page=><button key={page} onClick={()=>navigateTo(page)}>{page==="workspace"?<Activity size={16}/>:page==="collections"?<Folder size={16}/>:page==="environments"?<Globe2 size={16}/>:page==="history"?<History size={16}/>:<Braces size={16}/>}<span>{pageTitles[page]}</span><ChevronRight size={14}/></button>)}
+            <div className="menu-divider"/><button onClick={()=>{setMenuOpen(false);setDark(v=>!v);}}>{dark?<Sun size={16}/>:<Moon size={16}/>}<span>Switch to {dark?"light":"dark"} theme</span><ChevronRight size={14}/></button>
+            <a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer"><Code2 size={16}/>GitHub repository<ExternalLink size={13}/></a>
+          </div></>}
+          </div>
+        </div>
+      </header>
 
-      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> API WORKSPACE <span className="eyebrow-line"/></div><h1>Request studio<span>.</span></h1><p>Build, send and inspect HTTP requests with clarity.</p></div><div className="heading-meta"><span className="live-dot"/> {accountEmail ? "Account" : "Guest mode"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"}</div></section>
+      <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/>{currentPage==="workspace"?"API WORKSPACE":"DEVLENS WORKSPACE"}<span className="eyebrow-line"/></div><h1>{pageTitles[currentPage]}<span>.</span></h1><p>{currentPage==="workspace"?"Build, send and inspect HTTP requests with clarity.":currentPage==="collections"?"Organise reusable requests into focused API workspaces.":currentPage==="environments"?"Manage base URLs, tokens and variables across your requests.":currentPage==="history"?"Review, search and replay your recent API activity.":"A focused toolkit for everyday API development."}</p></div><div className="heading-meta"><span className="live-dot"/> {accountEmail ? "Account" : "Guest mode"} <span className="meta-divider"/> {activeEnvironment?.name ?? "No environment"}</div></section>
       {showImportPrompt && <div className="import-banner"><div><b>Guest workspace data found</b><span>Import {collections.filter(item => !item.cloudOwnerId).length} collection(s) and {environments.filter(item => !item.cloudOwnerId).length} environment(s) into your account. Local copies will stay on this device.</span></div><button onClick={importGuestData}>Import guest data</button><button className="dismiss-import" onClick={() => setShowImportPrompt(false)} aria-label="Dismiss"><X size={14}/></button></div>}
       {accountNotice && <div className="import-banner"><span>{accountNotice}</span><button className="dismiss-import" onClick={() => setAccountNotice("")} aria-label="Dismiss"><X size={14}/></button></div>}
 
-      <div className="workspace-grid">
-      <section className="request-card">
-        <div className="request-card-top"><div className="request-title"><div className="request-icon"><Code2 size={17}/></div><div><b>Untitled request</b><small>REST API · HTTP</small></div><span className="unsaved">UNSAVED</span></div><div className="request-actions"><button className="icon-button" title="Save request to this device" onClick={saveRequest}><Bookmark size={16}/></button><button className="icon-button" title="Resend request" onClick={run}><Send size={15}/></button></div></div>
-        <div className="url-row"><label className="sr-only" htmlFor="request-method">HTTP method</label><select id="request-method" value={request.method} onChange={e=>updateRequest({method:e.target.value as HttpMethod})}>{methods.map(m=><option key={m}>{m}</option>)}</select><label className="sr-only" htmlFor="request-url">Request URL</label><input id="request-url" className="url-input" value={request.url} onChange={e=>updateRequest({url:e.target.value})} onKeyDown={e=>e.key==="Enter"&&run()} aria-label="Request URL" placeholder="Enter request URL"/><button className="send-button" onClick={busy?cancelRequest:run}><Send size={15}/>{busy?"Cancel":"Send"}<span>↵</span></button></div>
-        <div className="editor-tabs">{(["params","headers","body","auth"] as const).map(t=><button key={t} className={tab===t?"selected":""} onClick={()=>setTab(t)}>{t==="params"?"Params":t==="headers"?"Headers":t==="body"?"Body":"Auth"}{t==="headers"&&<span className="tab-count">{request.headers.length}</span>}</button>)}</div>
-        <div className="editor-panel">
-          {tab==="headers" && <><div className="panel-caption"><span>HEADER</span><span>VALUE</span><span> </span></div>{request.headers.map(h=><div className="key-value-row" key={h.id}><label className="sr-only" htmlFor={`header-enabled-${h.id}`}>Enable header</label><input id={`header-enabled-${h.id}`} type="checkbox" checked={h.enabled} onChange={e=>updateHeader(h.id,{enabled:e.target.checked})}/><label className="sr-only" htmlFor={`header-key-${h.id}`}>Header name</label><input id={`header-key-${h.id}`} value={h.key} placeholder="Header name" onChange={e=>updateHeader(h.id,{key:e.target.value})}/><label className="sr-only" htmlFor={`header-value-${h.id}`}>Header value</label><input id={`header-value-${h.id}`} value={h.value} placeholder="Value" onChange={e=>updateHeader(h.id,{value:e.target.value})}/><button className="row-icon" aria-label={`Remove header ${h.key || "row"}`} onClick={()=>updateRequest({headers:request.headers.filter(x=>x.id!==h.id)})}><X size={14}/></button></div>)}<button className="add-row" onClick={()=>updateRequest({headers:[...request.headers,{id:uid(),key:"",value:"",enabled:true}]})}><Plus size={14}/> Add header</button></>}
-          {tab==="params" && <><div className="panel-caption"><span>PARAMETER</span><span>VALUE</span><span> </span></div>{params.map(p=><div className="key-value-row" key={p.id}><label className="sr-only" htmlFor={`param-enabled-${p.id}`}>Enable parameter</label><input id={`param-enabled-${p.id}`} type="checkbox" checked={p.enabled} onChange={e=>setParams(items=>items.map(x=>x.id===p.id?{...x,enabled:e.target.checked}:x))}/><label className="sr-only" htmlFor={`param-key-${p.id}`}>Parameter name</label><input id={`param-key-${p.id}`} value={p.key} placeholder="Parameter" onChange={e=>setParams(items=>items.map(x=>x.id===p.id?{...x,key:e.target.value}:x))}/><label className="sr-only" htmlFor={`param-value-${p.id}`}>Parameter value</label><input id={`param-value-${p.id}`} value={p.value} placeholder="Value" onChange={e=>setParams(items=>items.map(x=>x.id===p.id?{...x,value:e.target.value}:x))}/><button className="row-icon" aria-label={`Remove parameter ${p.key || "row"}`} onClick={()=>setParams(items=>items.filter(x=>x.id!==p.id))}><X size={14}/></button></div>)}<button className="add-row" onClick={()=>setParams(items=>[...items,{id:uid(),key:"",value:"",enabled:true}])}><Plus size={14}/> Add parameter</button></>}
-          {tab==="body" && <div className="body-editor"><div className="body-toolbar"><label htmlFor="body-type">BODY TYPE</label><select id="body-type" value={request.bodyType ?? "json"} onChange={event=>{const bodyType=event.target.value as "json"|"text"|"urlencoded"|"formdata";updateRequest({bodyType,...(bodyType==="formdata"?{body:"[]"}:{})});}}><option value="json">JSON</option><option value="text">Text</option><option value="urlencoded">URL encoded</option><option value="formdata">Form data</option></select><span>{request.bodyType === "formdata" ? "multipart/form-data · boundary generated automatically" : request.bodyType === "text" ? "text/plain" : request.bodyType === "urlencoded" ? "application/x-www-form-urlencoded" : "application/json"}</span></div>{request.bodyType === "formdata" ? <div className="formdata-editor"><div className="formdata-head"><span>KEY</span><span>VALUE</span><span></span></div>{formDataRows.map((row,index)=><div className="formdata-row" key={index}><input aria-label={"Form data key " + (index+1)} value={row.key} onChange={event=>updateFormDataRow(index,{key:event.target.value})} placeholder="Field name"/><input aria-label={"Form data value " + (index+1)} value={row.value} onChange={event=>updateFormDataRow(index,{value:event.target.value})} placeholder="Field value"/><button type="button" aria-label={"Remove form data field " + (index+1)} onClick={()=>saveFormDataRows(formDataRows.filter((_,rowIndex)=>rowIndex!==index))}><X size={13}/></button></div>)}<button type="button" className="formdata-add" onClick={()=>saveFormDataRows([...formDataRows,{key:"",value:""}])}><Plus size={12}/> Add field</button>{formDataRows.length===0&&<p className="formdata-empty">Add text fields to build your multipart request.</p>}</div> : <><label className="sr-only" htmlFor="request-body">Request body</label><textarea id="request-body" value={request.body} onChange={e=>updateRequest({body:e.target.value})} placeholder={request.bodyType === "urlencoded" ? "name=DevLens&status=building" : request.bodyType === "text" ? "Enter plain text..." : '{\n  "name": "DevLens",\n  "status": "building"\n}'} spellCheck={false}/></>}</div>}
-          {tab==="auth" && <div className="auth-panel"><label htmlFor="auth-type">AUTHENTICATION TYPE</label><select id="auth-type" value={authType} onChange={e=>setAuthType(e.target.value)}><option>No authentication</option><option>Bearer token</option><option>Basic auth</option><option>API key</option></select>{authType==="Bearer token" && <><label className="sr-only" htmlFor="auth-bearer-token">Bearer token</label><input id="auth-bearer-token" className="auth-value" type="password" value={authToken} onChange={e=>setAuthToken(e.target.value)} placeholder="Bearer token"/></>}{authType==="Basic auth" && <><label className="sr-only" htmlFor="auth-basic-username">Basic auth username</label><input id="auth-basic-username" className="auth-value" value={basicUsername} onChange={e=>setBasicUsername(e.target.value)} placeholder="Username"/><label className="sr-only" htmlFor="auth-basic-password">Basic auth password</label><input id="auth-basic-password" className="auth-value" type="password" value={basicPassword} onChange={e=>setBasicPassword(e.target.value)} placeholder="Password"/></>}{authType==="API key" && <><label className="sr-only" htmlFor="auth-api-key-name">API key name</label><input id="auth-api-key-name" className="auth-value" value={apiKeyName} onChange={e=>setApiKeyName(e.target.value)} placeholder="Key name"/><label className="sr-only" htmlFor="auth-api-key-value">API key value</label><input id="auth-api-key-value" className="auth-value" type="password" value={apiKeyValue} onChange={e=>setApiKeyValue(e.target.value)} placeholder="API key value"/><label className="sr-only" htmlFor="auth-api-key-location">API key location</label><select id="auth-api-key-location" className="auth-location" value={apiKeyLocation} onChange={e=>setApiKeyLocation(e.target.value as "Header" | "Query")}><option>Header</option><option>Query</option></select></>}<p>Credentials are sent with this request only. They are not saved with guest collections or included in public collection exports.</p></div>}
-        </div>
-      </section>
+      {currentPage === "workspace" && <>{workspace}</>}
+      {currentPage === "collections" && <section className="screen-page">
+        <div className="screen-toolbar"><div><span className="screen-kicker">YOUR LIBRARY</span><h2>Request collections</h2><p>{collections.length} collection{collections.length===1?"":"s"} · {collections.reduce((n,item)=>n+item.requests.length,0)} saved requests</p></div><button className="screen-primary" onClick={()=>setShowNew(true)}><Plus size={16}/> New collection</button></div>
+        {collections.length===0?<div className="screen-empty"><Folder size={28}/><b>Your collection space is empty</b><p>Create a collection to organise and reuse API requests.</p><button className="screen-primary" onClick={()=>setShowNew(true)}><Plus size={15}/> Create first collection</button></div>:<div className="screen-card-grid">{collections.map(collection=><article className="screen-card" key={collection.id}><div className="screen-card-icon"><Folder size={19}/></div><div className="screen-card-content"><h3>{collection.name}</h3><p>{collection.requests.length} saved request{collection.requests.length===1?"":"s"} · Updated {new Date(collection.updatedAt).toLocaleDateString()}</p><div className="screen-card-actions"><button onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);navigateTo("workspace");}}>Open workspace</button><button onClick={()=>void exportCollectionById(collection.id)}>Export</button><button onClick={()=>void renameCollection(collection.id)}>Rename</button><button onClick={()=>void duplicateCollection(collection.id)}>Duplicate</button><button onClick={()=>void publishCollection(collection.id)}>Share</button><button className="danger" onClick={()=>void deleteCollection(collection.id)}>Delete</button></div></div></article>)}</div>}
+        <div className="screen-bottom-note">Private by default. Public sharing is opt-in and sanitises sensitive values.</div>
+      </section>}
+      {currentPage === "environments" && <section className="screen-page">
+        <div className="screen-toolbar"><div><span className="screen-kicker">VARIABLE MANAGER</span><h2>Environments</h2><p>Switch between development, staging and production settings.</p></div><button className="screen-primary" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={16}/> New environment</button></div>
+        {environments.length===0?<div className="screen-empty"><Globe2 size={28}/><b>No environments configured</b><p>Add variables such as API_BASE_URL or API_TOKEN. Secret values stay masked in the editor.</p><button className="screen-primary" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={15}/> Create environment</button></div>:<div className="screen-card-grid">{environments.map(environment=><article className={activeEnvironmentId===environment.id?"screen-card active":"screen-card"} key={environment.id}><div className="screen-card-icon"><Globe2 size={19}/></div><div className="screen-card-content"><div className="screen-card-title"><h3>{environment.name}</h3>{activeEnvironmentId===environment.id&&<span className="active-pill">ACTIVE</span>}</div><p>{environment.variables.length} variable{environment.variables.length===1?"":"s"} · {environment.variables.filter(v=>v.enabled).length} enabled</p><div className="screen-card-actions"><button onClick={()=>void activateEnvironment(environment.id)}>Use environment</button><button onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button><button className="danger" onClick={()=>void deleteEnvironment(environment.id)}>Delete</button></div></div></article>)}</div>}
+      </section>}
+      {currentPage === "history" && <section className="screen-page">
+        <div className="screen-toolbar"><div><span className="screen-kicker">ACTIVITY LOG</span><h2>Request history</h2><p>Recent requests are stored without request or response bodies.</p></div><button className="screen-secondary" onClick={()=>void clearRequestHistory()} disabled={!history.length}>Clear history</button></div>
+        <div className="history-search"><input value={historyFilter} onChange={event=>setHistoryFilter(event.target.value)} placeholder="Search method, URL or status…" aria-label="Search request history"/><span>{history.filter(item=>(item.method+" "+item.url+" "+(item.status??"")).toLowerCase().includes(historyFilter.toLowerCase())).length} results</span></div>
+        {history.filter(item=>(item.method+" "+item.url+" "+(item.status??"")).toLowerCase().includes(historyFilter.toLowerCase())).length===0?<div className="screen-empty"><History size={28}/><b>No matching requests</b><p>Send an API request and it will appear here.</p></div>:<div className="history-table">{history.filter(item=>(item.method+" "+item.url+" "+(item.status??"")).toLowerCase().includes(historyFilter.toLowerCase())).map(item=><button className="history-row" key={item.id} onClick={()=>{updateRequest({method:item.method,url:item.url});navigateTo("workspace");}}><span className="history-method">{item.method}</span><span className="history-url">{item.url}</span><span className="history-status">{item.status??"—"}</span><span className="history-time">{new Date(item.createdAt).toLocaleString()}</span><ChevronRight size={15}/></button>)}</div>}
+      </section>}
+      {currentPage === "tools" && <section className="screen-page">
+        <div className="screen-toolbar"><div><span className="screen-kicker">DEVELOPER TOOLKIT</span><h2>Utilities</h2><p>Small, fast tools for inspecting and transforming API data.</p></div></div>
+        <div className="tool-card-grid">{[["JSON formatter","Format and validate JSON","{}"],["JSON diff","Compare two JSON documents","⇄"],["JWT inspector","Decode JWT header and payload","JWT"],["Base64 encode","Encode text to Base64","64"],["Base64 decode","Decode Base64 text","↙"],["URL encode","Encode URL components","%"],["URL decode","Decode URL components","↗"],["UUID generator","Generate random UUIDs","ID"],["cURL importer","Import a cURL command","$"],["cURL exporter","Export a request as cURL","⌘"]].map(([name,desc,mark])=><button className="tool-card" key={name} onClick={()=>setActiveUtility(name)}><span>{mark}</span><b>{name}</b><small>{desc}</small><ChevronRight size={15}/></button>)}</div>
+      </section>}
 
-      <section className="response-card">
-        <div className="response-head"><div className="response-title"><div className="response-icon"><ArrowDown size={16}/></div><div><b>Response</b><small>{response?"Latest request result":"Your response will appear here"}</small></div></div>{response && <div className="response-stats"><span className={response.status<400?"status-good":"status-bad"}><i/>{response.status} {response.statusText}</span><span><Clock3 size={13}/>{response.duration} ms</span><span><Layers3 size={13}/>{(response.size/1024).toFixed(2)} KB</span></div>}</div>
-        {error && <div className="error-banner" role="alert">{error}</div>}
-        {response ? <><div className="response-tabs">{(["pretty","raw","headers"] as const).map(t=><button className={responseTab===t?"selected":""} onClick={()=>setResponseTab(t)} key={t}>{t==="pretty"?"Pretty":t==="raw"?"Raw":"Headers"}</button>)}<button className="copy-response" onClick={()=>navigator.clipboard.writeText(responseTab==="headers"?JSON.stringify(response.headers,null,2):responseTab==="raw"?response.body:prettyBody)}><Copy size={13}/> Copy</button><button className="download-response" onClick={downloadResponse} title="Download response"><Download size={13}/> Save</button></div><pre className="response-code">{responseTab==="headers"?JSON.stringify(response.headers,null,2):responseTab==="raw"?response.body:prettyBody}</pre></> : <div className="response-empty"><div className="empty-art"><div className="empty-ring ring-one"/><div className="empty-ring ring-two"/><div className="empty-center"><FileJson size={23}/></div><span className="float-dot dot-a"/><span className="float-dot dot-b"/></div><b>Waiting for a response</b><p>Send a request to see status, headers and response data.</p><span className="empty-hint"><Command size={12}/> Press Enter in the URL field to send</span></div>}
-      </section>
-      </div>
-      <footer className="footer"><span>DEVLENS <span>·</span> EARLY ACCESS</span><span>Made for developers who care about the details.</span><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a></footer>
+      <footer className="footer"><span>DEVLENS <span>·</span> SEE YOUR APIS CLEARLY</span><span>Built for developers. Open source and privacy-first.</span><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer">GitHub <ExternalLink size={12}/></a></footer>
     </main>
 
     {mobilePanel && <div className="mobile-panel" role="region" aria-label="Mobile workspace menu">
@@ -644,13 +703,7 @@ export default function App() {
       {mobilePanel==="history" && <>{history.length ? history.map(item=><button className="mobile-panel-item" key={item.id} onClick={()=>{updateRequest({method:item.method,url:item.url});setMobilePanel(null);}}><Clock3 size={14}/><span>{item.method} · {item.status ?? "—"} · {item.url}</span></button>) : <p className="mobile-panel-empty">Your recent requests will appear here.</p>}</>}
       {mobilePanel==="utilities" && <div className="mobile-utility-grid">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL exporter"].map(tool=><button key={tool} onClick={()=>{setActiveUtility(tool);setMobilePanel(null);}}>{tool}</button>)}</div>}
     </div>}
-    <nav className="mobile-nav" aria-label="Workspace navigation">
-      <button className={!mobilePanel?"active":""} onClick={()=>{setActiveNav("Collections");setMobilePanel(null);}}><Activity size={18}/><span>Workspace</span></button>
-      <button className={mobilePanel==="collections"?"active":""} onClick={()=>{setActiveNav("Collections");setMobilePanel(mobilePanel==="collections"?null:"collections");}}><Folder size={18}/><span>Collections</span></button>
-      <button className={mobilePanel==="environments"?"active":""} onClick={()=>{setActiveNav("Environments");setMobilePanel(mobilePanel==="environments"?null:"environments");}}><Globe2 size={18}/><span>Environments</span></button>
-      <button className={mobilePanel==="history"?"active":""} onClick={()=>{setActiveNav("History");setMobilePanel(mobilePanel==="history"?null:"history");}}><History size={18}/><span>History</span></button>
-      <button className={mobilePanel==="utilities"?"active":""} onClick={()=>{setActiveNav("Utilities");setMobilePanel(mobilePanel==="utilities"?null:"utilities");}}><Braces size={18}/><span>Tools</span></button>
-    </nav>
+    <nav className="mobile-nav" aria-label="Primary navigation">{(["workspace","collections","environments","history","tools"] as AppPage[]).map(page=><button key={page} className={currentPage===page?"active":""} onClick={()=>navigateTo(page)}>{page==="workspace"?<Activity size={18}/>:page==="collections"?<Folder size={18}/>:page==="environments"?<Globe2 size={18}/>:page==="history"?<History size={18}/>:<Braces size={18}/>}<span>{page==="workspace"?"Workspace":page==="tools"?"Tools":page==="history"?"History":page==="collections"?"Collections":"Environments"}</span></button>)}</nav>
     {showEnvironmentModal && <EnvironmentModal initial={editingEnvironment} onClose={() => setShowEnvironmentModal(false)} onSave={saveEnvironment} onDelete={deleteEnvironment} />}
     {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} onImportRequest={loadImportedCurl} />}
     {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && hasUnimportedGuestData(user.id, collections, environments)) setShowImportPrompt(true); }} />}
