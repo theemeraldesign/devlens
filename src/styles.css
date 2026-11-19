@@ -472,3 +472,9 @@
 .auth-modal .auth-otp-input::placeholder{letter-spacing:.42em;color:#586575!important}
 .auth-modal .auth-switch:disabled{opacity:.55;cursor:not-allowed}
 .auth-modal .auth-switch svg{display:inline-block;vertical-align:-2px;margin-right:4px}
+
+
+/* Desktop uses the sidebar brand; keep the compact top-bar brand for mobile. */
+@media (min-width: 681px) {
+  .topbar .top-brand { display: none; }
+}
