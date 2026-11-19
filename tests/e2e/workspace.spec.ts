@@ -398,8 +398,12 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   await page.getByRole("button", { name: "Collections" }).first().click();
   const cleanupOriginal = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name, exact: true }) });
   if (await cleanupOriginal.count()) await cleanupOriginal.getByRole("button", { name: "Delete", exact: true }).click();
-  sharedPage.once("dialog", dialog => dialog.accept());
-  await sharedPage.getByRole("button", { name: "Delete", exact: true }).first().click().catch(() => undefined);
+  await sharedPage.goto("/collections");
+  const cleanupImported = sharedPage.locator(".screen-card").filter({ has: sharedPage.getByRole("heading", { name: importedName, exact: true }) });
+  if (await cleanupImported.count()) {
+    sharedPage.once("dialog", dialog => dialog.accept());
+    await cleanupImported.getByRole("button", { name: "Delete", exact: true }).click();
+  }
   await sharedPage.close();
 });
 
