@@ -1,43 +1,41 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sendRequest } from "./request";
 
-const disabledProxy = () => new Response(JSON.stringify({
-  error: "The API request proxy is temporarily disabled while secure outbound networking is configured."
-}), { status: 503, headers: { "content-type": "application/json" } });
-
 afterEach(() => vi.unstubAllGlobals());
 
-describe("browser request fallback", () => {
-  it("uses direct browser fetch only when the Worker explicitly reports its proxy is disabled", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(disabledProxy())
-      .mockResolvedValueOnce(new Response('{"ok":true}', {
-        status: 200,
-        headers: { "content-type": "application/json", "x-request-id": "demo-1" }
-      }));
+describe("authenticated API proxy requests", () => {
+  it("sends the Supabase access token to the Worker and does not fall back when the proxy is disabled", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
+      error: "The secure request gateway is not available."
+    }), { status: 503, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await sendRequest({
+    await expect(sendRequest({
       method: "GET",
       url: "https://api.example.com/items",
       headers: [{ id: "h1", key: "Accept", value: "application/json", enabled: true }],
       body: ""
-    });
+    }, undefined, [], "test-access-token")).rejects.toThrow("The secure request gateway is not available.");
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1][0]).toBe("https://api.example.com/items");
-    expect(fetchMock.mock.calls[1][1]).toMatchObject({
-      method: "GET",
-      mode: "cors",
-      credentials: "omit",
-      referrerPolicy: "no-referrer"
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/proxy");
+    expect(fetchMock.mock.calls[0][1].headers).toMatchObject({
+      authorization: "Bearer test-access-token",
+      "content-type": "application/json"
     });
-    expect(result.status).toBe(200);
-    expect(result.body).toBe('{"ok":true}');
-    expect(result.headers["x-request-id"]).toBe("demo-1");
   });
 
-  it("does not fall back for unrelated proxy errors", async () => {
+  it("rejects missing access tokens before making a proxy request", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(sendRequest({
+      method: "GET", url: "https://api.example.com",
+      headers: [], body: ""
+    })).rejects.toThrow(/Sign in/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("surfaces rate-limit errors without retrying a direct browser request", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
       error: "Rate limit exceeded."
     }), { status: 429, headers: { "content-type": "application/json" } }));
@@ -46,26 +44,14 @@ describe("browser request fallback", () => {
     await expect(sendRequest({
       method: "GET", url: "https://api.example.com",
       headers: [], body: ""
-    })).rejects.toThrow("Rate limit exceeded.");
+    }, undefined, [], "test-access-token")).rejects.toThrow("Rate limit exceeded.");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("reports a useful CORS/network message when direct browser fetch is blocked", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(disabledProxy())
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(sendRequest({
-      method: "GET", url: "https://api.example.com",
-      headers: [], body: ""
-    })).rejects.toThrow(/must allow CORS/);
-  });
-
-  it("builds multipart form data without setting a manual content type", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(disabledProxy())
-      .mockResolvedValueOnce(new Response("ok", { status: 200 }));
+  it("sends text form-data fields through the authenticated gateway as JSON", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
+      status: 200, statusText: "OK", duration: 0, size: 2, headers: {}, body: "ok"
+    }), { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
     await sendRequest({
@@ -74,13 +60,17 @@ describe("browser request fallback", () => {
       headers: [{ id: "h1", key: "Content-Type", value: "application/json", enabled: true }],
       body: JSON.stringify([{ key: "title", value: "DevLens" }]),
       bodyType: "formdata"
-    });
+    }, undefined, [], "test-access-token");
 
-    const init = fetchMock.mock.calls[1][1] as RequestInit;
-    expect(init.body).toBeInstanceOf(FormData);
-    expect(new Headers(init.headers).has("content-type")).toBe(false);
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      bodyType: "formdata",
+      body: JSON.stringify([{ key: "title", value: "DevLens" }])
+    });
+    expect(init.headers).toMatchObject({ authorization: "Bearer test-access-token" });
   });
-  it("sends selected files as multipart fields without setting a manual content type", async () => {
+
+  it("sends selected files directly from the browser as multipart fields", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("uploaded", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
@@ -105,5 +95,4 @@ describe("browser request fallback", () => {
     }, undefined, [{ key: "file", file }])).rejects.toThrow(/10 MB/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
-
 });
