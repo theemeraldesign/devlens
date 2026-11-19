@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPrivateAddress } from "./index";
+import { buildOutboundBody, isPrivateAddress } from "./index";
 
 describe("SSRF destination checks", () => {
   it.each([
@@ -18,5 +18,26 @@ describe("SSRF destination checks", () => {
     "2606:4700:4700::1111", "2001:4860:4860::8888"
   ])("allows public address %s", host => {
     expect(isPrivateAddress(host)).toBe(false);
+  });
+});
+
+describe("multipart form-data request bodies", () => {
+  it("builds multipart fields and lets Fetch generate the boundary", async () => {
+    const headers = new Headers({ "content-type": "application/json" });
+    const body = buildOutboundBody("POST", "formdata", JSON.stringify([
+      { key: "name", value: "DevLens" },
+      { key: "tags", value: "api" },
+      { key: "tags", value: "testing" }
+    ]), headers);
+    expect(body).toBeInstanceOf(FormData);
+    expect(headers.has("content-type")).toBe(false);
+    const form = body as FormData;
+    expect(form.get("name")).toBe("DevLens");
+    expect(form.getAll("tags")).toEqual(["api", "testing"]);
+  });
+
+  it("rejects malformed form-data input", () => {
+    expect(() => buildOutboundBody("POST", "formdata", "{bad json", new Headers())).toThrow(/JSON array/);
+    expect(() => buildOutboundBody("POST", "formdata", JSON.stringify([{ key: "", value: "x" }]), new Headers())).toThrow(/Each form-data field/);
   });
 });
