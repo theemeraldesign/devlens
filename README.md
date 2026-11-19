@@ -19,7 +19,7 @@ The first application foundation is in place:
 - Searchable request history with local and cloud clearing.
 - Redacted request history stored locally for guests and synced to the signed-in account.
 - Developer utilities: JSON formatting, JWT decoding, Base64, URL encoding, UUID generation and cURL import/export.
-- Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks.
+- Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks. Outbound proxying is disabled by default until secure egress is configured.
 - Supabase schema with owner-scoped RLS for private data and a separate public snapshot surface.
 
 This is an early development build. Collection management, history search, cURL import/export, public collection links and multipart form-data text fields are implemented. File uploads and advanced utilities remain in progress. The request proxy's DNS validation is a first security layer, not a substitute for a dedicated, DNS-pinned egress gateway. Do not deploy it for public production traffic until the egress design receives a full SSRF review.
