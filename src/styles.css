@@ -131,3 +131,15 @@
 
 .formdata-editor{padding:12px;background:var(--input)}.formdata-head,.formdata-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 28px;gap:9px;align-items:center}.formdata-head{padding:0 0 7px;color:var(--muted);font:9px "DM Mono",monospace;letter-spacing:.8px}.formdata-row{margin:7px 0}.formdata-row input{width:100%;min-width:0;height:33px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);padding:0 9px;font:10px "DM Mono",monospace;outline:none}.formdata-row input:focus{border-color:var(--accent)}.formdata-row button{height:29px;border:0;border-radius:5px;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}.formdata-row button:hover{background:var(--panel2);color:var(--danger)}.formdata-add{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--accent);padding:8px 0 2px;font:500 10px "DM Sans",sans-serif;cursor:pointer}.formdata-empty{margin:4px 0 0;color:var(--muted);font-size:10px}
 @media(max-width:680px){.formdata-editor{padding:9px}.formdata-head,.formdata-row{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr) 25px;gap:5px}.formdata-row input{font-size:9px;padding:0 6px}}
+
+/* First-load motion: restrained, fast, and disabled for reduced-motion users. */
+.app-enter{animation:devlens-enter .52s cubic-bezier(.2,.75,.25,1) both}
+.app-enter .sidebar{animation:devlens-side .55s cubic-bezier(.2,.75,.25,1) both}
+.app-enter .main{animation:devlens-main .62s cubic-bezier(.2,.75,.25,1) both}
+@keyframes devlens-enter{from{opacity:0}to{opacity:1}}
+@keyframes devlens-side{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes devlens-main{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+.download-response{margin-left:0;display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--muted);padding:5px 8px;font:500 10px "DM Sans",sans-serif;cursor:pointer}
+.download-response:hover{color:var(--text);border-color:var(--accent)}
+@media(max-width:680px){.response-tabs{gap:12px}.download-response{padding:5px 6px;font-size:9px}.copy-response{font-size:10px!important}}
+@media(prefers-reduced-motion:reduce){.app-enter,.app-enter .sidebar,.app-enter .main{animation:none!important}}
