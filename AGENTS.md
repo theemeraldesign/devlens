@@ -4,11 +4,14 @@
 DevLens is a focused API development studio. Its promise is clarity, control and trustworthy request inspection. Build working product flows, not decorative demo screens.
 
 ## Design system
+
+DevLens follows a deliberate product thesis: a precision instrument panel for API work. High information density, cool-neutral surfaces, warm copper action accent, clear response states and restrained ornament. Every layout choice should support scanning, editing or inspecting an API request.
 - Keep the interface restrained, precise and information-dense without feeling crowded.
 - Use DM Sans for interface text and DM Mono for URLs, methods, code and metadata.
 - Keep the dark and light themes equally complete.
 - Use the existing spacing, borders, muted text and accent tokens in `src/styles.css`.
-- Prefer subtle surfaces, clear hierarchy and functional states over gradients, glass effects, oversized hero sections or generic AI-generated layouts.
+- Prefer subtle graphite/paper surfaces, a warm copper accent and functional states over gradients, glass effects, oversized hero sections or generic AI-generated layouts.
+- Keep success green and error red reserved for status feedback. Do not use the brand accent as a success color.
 - Preserve responsive behavior at desktop, tablet and mobile widths.
 - Every visible control must have a real action, a clear disabled state or an explicit not-yet-available label.
 
