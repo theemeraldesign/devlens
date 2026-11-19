@@ -95,9 +95,24 @@ Deno.serve(async (request: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !anonKey || !serviceRoleKey) return Response.json({ error: "Publishing service is not configured." }, { status: 503, headers: corsHeaders });
 
+  // Supabase's gateway verifies this JWT because verify_jwt is enabled for the function.
+  // Read the verified subject locally to avoid an extra Auth API request on every action.
+  let userId = "";
+  try {
+    const token = authorization.slice("Bearer ".length);
+    const encodedClaims = token.split(".")[1];
+    if (!encodedClaims) throw new Error("Missing JWT claims.");
+    const base64 = encodedClaims.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="))) as { sub?: unknown; role?: unknown };
+    if (claims.role !== "authenticated" || typeof claims.sub !== "string" || !/^[0-9a-f-]{36}$/i.test(claims.sub)) {
+      throw new Error("Invalid authenticated subject.");
+    }
+    userId = claims.sub;
+  } catch {
+    return Response.json({ error: "Your session is invalid. Sign in again." }, { status: 401, headers: corsHeaders });
+  }
+
   const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: authData, error: authError } = await userClient.auth.getUser();
-  if (authError || !authData.user) return Response.json({ error: "Your session is invalid. Sign in again." }, { status: 401, headers: corsHeaders });
 
   let payload: { collectionId?: string; action?: string };
   try { payload = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400, headers: corsHeaders }); }
@@ -109,7 +124,7 @@ Deno.serve(async (request: Request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
   if (payload.action === "list") {
     const { data: publishedCollections, error } = await admin.from("public_collection_snapshots")
-      .select("collection_id,slug").eq("owner_id", authData.user.id);
+      .select("collection_id,slug").eq("owner_id", userId);
     if (error) return Response.json({ error: "Unable to load publication status." }, { status: 500, headers: corsHeaders });
     return Response.json({ publishedCollections: publishedCollections ?? [] }, { headers: corsHeaders });
   }
@@ -120,32 +135,32 @@ Deno.serve(async (request: Request) => {
 
   if (payload.action === "status") {
     const { data: existing, error } = await admin.from("public_collection_snapshots")
-      .select("slug").eq("collection_id", payload.collectionId).eq("owner_id", authData.user.id).maybeSingle();
+      .select("slug").eq("collection_id", payload.collectionId).eq("owner_id", userId).maybeSingle();
     if (error) return Response.json({ error: "Unable to check publication status." }, { status: 500, headers: corsHeaders });
     return Response.json({ published: Boolean(existing), slug: existing?.slug ?? null }, { headers: corsHeaders });
   }
 
   if (payload.action === "unpublish") {
-    const { error } = await admin.from("public_collection_snapshots").delete().eq("collection_id", payload.collectionId).eq("owner_id", authData.user.id);
+    const { error } = await admin.from("public_collection_snapshots").delete().eq("collection_id", payload.collectionId).eq("owner_id", userId);
     if (error) return Response.json({ error: "Unable to unpublish this collection." }, { status: 500, headers: corsHeaders });
     return Response.json({ published: false }, { headers: corsHeaders });
   }
 
   const { data: collection, error: collectionError } = await userClient.from("collections")
-    .select("id,name,content").eq("id", payload.collectionId).eq("owner_id", authData.user.id).maybeSingle();
+    .select("id,name,content").eq("id", payload.collectionId).eq("owner_id", userId).maybeSingle();
   if (collectionError || !collection) return Response.json({ error: "Collection not found or access denied." }, { status: 404, headers: corsHeaders });
 
   const content = collection.content && typeof collection.content === "object" ? collection.content as Record<string, unknown> : {};
   const sourceRequests = Array.isArray(content.requests) ? content.requests : [];
   if (sourceRequests.length > 500) return Response.json({ error: "Collections are limited to 500 requests for publishing." }, { status: 400, headers: corsHeaders });
   const requests = sourceRequests.map(sanitizeRequest).filter((item): item is Record<string, unknown> => item !== null);
-  const { data: existing } = await admin.from("public_collection_snapshots").select("slug").eq("collection_id", collection.id).eq("owner_id", authData.user.id).maybeSingle();
+  const { data: existing } = await admin.from("public_collection_snapshots").select("slug").eq("collection_id", collection.id).eq("owner_id", userId).maybeSingle();
   const slug = existing?.slug || crypto.randomUUID().replace(/-/g, "");
   const snapshot = { format: "devlens-public-collection", version: 1, requests };
   if (JSON.stringify(snapshot).length > 1_500_000) return Response.json({ error: "This collection is too large to publish. Reduce the number or size of requests." }, { status: 413, headers: corsHeaders });
   const { data: published, error: publishError } = await admin.from("public_collection_snapshots").upsert({
     collection_id: collection.id,
-    owner_id: authData.user.id,
+    owner_id: userId,
     slug,
     title: String(collection.name).slice(0, 120),
     snapshot,
