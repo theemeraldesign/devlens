@@ -1,17 +1,32 @@
 # DevLens portfolio screenshots
 
-This folder is reserved for real screenshots of the deployed DevLens application.
+The release workflow captures these images from the live production application at https://devlens.cc.cd using the dedicated authenticated E2E account. It uses realistic, non-sensitive demo content and masks the account label before capture.
 
-Capture screenshots from https://devlens.cc.cd after signing in with a test account. Do not use mockups or generated images as product evidence.
+Images are stored in `docs/screenshots/` and embedded in the root README.
 
-Required captures:
+## Current screenshot set
 
-1. `workspace-desktop.png`, 1440 × 900.
-2. `workspace-mobile.png`, 390 × 844.
-3. `collections-desktop.png`, showing a sample collection and saved requests.
-4. `environments-desktop.png`, with all variable values masked.
-5. `response-inspector.png`, showing a sample response without private credentials.
-6. `shared-collection.png`, showing the read-only public collection page.
-7. `utilities.png`, showing the developer utilities screen.
+- `landing-desktop.png`, public landing page at 1440 × 900.
+- `workspace-desktop.png`, authenticated request studio at 1440 × 900.
+- `workspace-mobile.png`, authenticated workspace at 390 × 844.
+- `collections-desktop.png`, sample collection with a saved request.
+- `environments-desktop.png`, demo environment with non-secret values.
+- `response-inspector.png`, sample JSON response with status and headers.
+- `shared-collection.png`, public read-only collection view.
+- `history-desktop.png`, request history screen.
+- `utilities.png`, JSON formatter with a sample payload.
 
-Before committing, remove account email addresses, tokens, private URLs, customer data and any other sensitive information.
+## Refresh process
+
+The production deployment workflow runs `scripts/capture-portfolio-screenshots.mjs` after authenticated browser tests. It captures the images and commits changed screenshots to the repository.
+
+To capture locally against the production site:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://devlens.cc.cd \
+DEVLENS_E2E_EMAIL=your-dedicated-test-account \
+DEVLENS_E2E_PASSWORD=your-test-account-password \
+node scripts/capture-portfolio-screenshots.mjs
+```
+
+Do not use a personal account for screenshot automation. Keep all sample values synthetic. Never capture real API tokens, passwords, customer data, private URLs or personal account details.
