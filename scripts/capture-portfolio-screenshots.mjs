@@ -9,7 +9,8 @@ if (!email || !password) throw new Error("Production screenshot capture requires
 const output = "docs/screenshots";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+const page = await context.newPage();
 const screenshot = async name => page.screenshot({ path: `${output}/${name}.png`, fullPage: false, animations: "disabled" });
 const maskAccount = async target => {
   await target.addStyleTag({ content: ".profile-row span{filter:blur(8px)!important}.profile-row small{visibility:hidden!important}" });
@@ -67,7 +68,7 @@ try {
   if (!publish.ok()) throw new Error("Unable to publish the demo collection for the portfolio screenshot.");
   const { slug } = await publish.json();
   if (!slug) throw new Error("The publish action did not return a public slug.");
-  const shared = await page.context().newPage();
+  const shared = await context.newPage();
   await shared.goto(new URL("/share/" + slug, baseURL).toString(), { waitUntil: "networkidle" });
   await shared.getByRole("heading", { name: "DevLens Demo API", exact: true }).waitFor();
   await shared.screenshot({ path: `${output}/shared-collection.png`, fullPage: false, animations: "disabled" });
