@@ -43,6 +43,9 @@ The screenshots below are captured from the live production application using a 
     <br/><br/>
     <img src="docs/screenshots/response-inspector.png" width="100%" alt="DevLens response inspector showing a formatted JSON response"/>
     <br/><sub>Response inspector · Pretty JSON, status, timing and headers</sub>
+    <br/><br/>
+    <img src="docs/screenshots/history-desktop.png" width="100%" alt="DevLens request history on desktop"/>
+    <br/><sub>Request history · Synced request activity</sub>
   </div>
 </details>
 
