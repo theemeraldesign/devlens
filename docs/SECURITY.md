@@ -6,7 +6,7 @@
 | --- | --- | --- | --- |
 | Request definitions | Browser storage | Owner-only collection rows | Sanitized snapshot only |
 | Environment values | Not cloud-synced | Owner-only | Never |
-| Request history | Browser memory in this build | Owner-only table | Never |
+| Request history | Browser storage | Owner-only table, URL query secrets redacted | Never |
 | Auth credentials | Entered per request | Entered per request | Never |
 | Account identity | Not required | Supabase Auth | Never included in snapshots |
 
@@ -20,6 +20,8 @@
 - The Worker rejects non-HTTP(S) URLs, private IP literals, private DNS answers, credentials embedded in URLs and upstream redirects.
 - The Worker streams and caps request and response bodies, caps header count and size, and applies a timeout.
 - A Cloudflare Rate Limiting binding applies an approximate per-location limit of 60 proxy calls per minute per browser identity and source IP. This is a burst-control layer, not a strict global quota.
+- Public snapshots redact credential-like URL query values, remove sensitive JSON fields from request bodies, and omit non-JSON request bodies.
+- Request history stores method, redacted URL, status and duration only. It does not store request or response bodies or credential headers.
 - JWT inspection is decode-only. It does not claim to verify signatures.
 
 ## Production release blockers
