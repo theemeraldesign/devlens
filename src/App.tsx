@@ -12,6 +12,10 @@ const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "applic
 const initialRequest: ApiRequest = { method: "GET", url: "https://jsonplaceholder.typicode.com/posts/1", headers: starterHeaders, body: "" };
 const methods: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
 const workspaceNav = [{ name: "Collections", icon: Folder }, { name: "Environments", icon: Globe2 }, { name: "History", icon: History }] as const;
+const guestImportKey = (userId: string) => `devlens.guest-imported.${userId}`;
+function hasImportedGuestData(userId: string): boolean {
+  try { return localStorage.getItem(guestImportKey(userId)) === "1"; } catch { return false; }
+}
 
 export default function App() {
   const [dark, setDark] = useState(true);
@@ -49,10 +53,13 @@ export default function App() {
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
+      if (user && collections.length && !hasImportedGuestData(user.id)) setShowImportPrompt(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
+      if (session?.user && collections.length && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true);
+      if (!session) setShowImportPrompt(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -88,10 +95,11 @@ export default function App() {
   async function importGuestData() {
     if (!supabase || !accountId || !collections.length) return;
     setAccountNotice("");
-    const rows = collections.map(({ name, requests }) => ({ owner_id: accountId, name, content: { requests } }));
-    const { error: importError } = await supabase.from("collections").insert(rows);
+    const rows = collections.map(({ id, name, requests }) => ({ owner_id: accountId, guest_id: id, name, content: { requests } }));
+    const { error: importError } = await supabase.from("collections").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
     if (importError) setAccountNotice(importError.message);
     else {
+      try { localStorage.setItem(guestImportKey(accountId), "1"); } catch { /* Local copies remain safe if storage is unavailable. */ }
       setShowImportPrompt(false);
       setAccountNotice("Guest collections imported. Your local copies remain on this device.");
     }
@@ -170,7 +178,7 @@ export default function App() {
       <footer className="footer"><span>DEVLENS <span>·</span> EARLY ACCESS</span><span>Made for developers who care about the details.</span><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a></footer>
     </main>
     {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
-    {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if (collections.length) setShowImportPrompt(true); }} />}
+    {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if (collections.length && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
     {showNew && <div className="modal-backdrop" onClick={()=>setShowNew(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title"><b>Create a collection</b><button onClick={()=>setShowNew(false)}><X size={16}/></button></div><p>Give your requests a home.</p><input value={collectionName} onChange={e=>setCollectionName(e.target.value)} placeholder="Collection name"/><button className="send-button modal-submit" onClick={createCollection}>Create collection</button></div></div>}
   </div>;
 }
