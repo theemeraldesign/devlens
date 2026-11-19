@@ -68,6 +68,7 @@ export default function App() {
   const [mobilePanel, setMobilePanel] = useState<"collections" | "environments" | "history" | "utilities" | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showAuth, setShowAuth] = useState(() => window.location.search.includes("password-reset=1"));
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [activeUtility, setActiveUtility] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
@@ -637,9 +638,9 @@ export default function App() {
 
   const shareSlug = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{8,80})$/)?.[1] ?? null;
   if (shareSlug && !authReady) return <div className="auth-loading" role="status">Preparing your shared collection...</div>;
-  if (shareSlug) return <><SharedCollectionPage slug={shareSlug} onImport={(name, rows) => { if (!accountId) { setShowAuth(true); return; } void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>); }} />{showAuth && <AuthModal initialMode="signin" onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); }} />}</>;
+  if (shareSlug) return <><SharedCollectionPage slug={shareSlug} onImport={(name, rows) => { if (!accountId) { setAuthMode("signin"); setShowAuth(true); return; } void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>); }} />{showAuth && <AuthModal initialMode="signin" onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); }} />}</>;
   if (!authReady) return <div className="auth-loading" role="status">Preparing your workspace...</div>;
-  if (!accountId) return <><LandingPage onGetStarted={() => setShowAuth(true)} onSignIn={() => setShowAuth(true)}/>{showAuth && <AuthModal initialMode={window.location.search.includes("password-reset=1") ? "update" : "signin"} onClose={() => { setShowAuth(false); if (window.location.search.includes("password-reset=1")) window.history.replaceState({}, "", window.location.pathname); }} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); }} />}</>;
+  if (!accountId) return <><LandingPage onGetStarted={() => { setAuthMode("signup"); setShowAuth(true); }} onSignIn={() => { setAuthMode("signin"); setShowAuth(true); }}/>{showAuth && <AuthModal initialMode={window.location.search.includes("password-reset=1") ? "update" : authMode} onClose={() => { setShowAuth(false); if (window.location.search.includes("password-reset=1")) window.history.replaceState({}, "", window.location.pathname); }} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); }} />}</>;
 
   return <div className={dark ? "app dark app-enter" : "app light app-enter"}>
     <aside className="sidebar">
