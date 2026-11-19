@@ -82,3 +82,12 @@
 .body-toolbar label{font:8px "DM Mono",monospace;letter-spacing:.8px;color:var(--muted)}
 .body-toolbar select{border:1px solid var(--line);border-radius:4px;background:var(--input);color:var(--text);font:9px "DM Mono",monospace;padding:4px 6px}
 .body-toolbar span:last-child{margin-left:auto}
+
+.collection-row{display:flex;align-items:center;gap:3px;min-width:0}
+.collection-row>.collection-choice{flex:1;min-width:0}
+.collection-row-actions{display:flex;align-items:center;gap:1px;opacity:.45;transition:opacity .16s ease}
+.collection-group:hover .collection-row-actions,.collection-group:focus-within .collection-row-actions{opacity:1}
+.collection-row-actions button{border:0;background:transparent;color:var(--muted);padding:4px 5px;border-radius:4px;font:500 8px "DM Sans",sans-serif;cursor:pointer}
+.collection-row-actions button:hover{background:var(--panel2);color:var(--text)}
+.collection-row-actions button:last-child:hover{color:var(--danger,#df6868)}
+@media(max-width:760px){.collection-row-actions{opacity:1}.collection-row-actions button{padding:5px 4px;font-size:8px}}
