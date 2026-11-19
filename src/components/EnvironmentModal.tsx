@@ -38,14 +38,14 @@ export default function EnvironmentModal({ initial, onClose, onSave, onDelete }:
   return <div className="modal-backdrop" onClick={onClose}>
     <section ref={dialogRef} className="modal environment-modal" role="dialog" aria-modal="true" aria-labelledby="environment-title" onClick={event => event.stopPropagation()}>
       <div className="modal-title"><div><span className="utility-kicker">WORKSPACE ENVIRONMENT</span><b id="environment-title">{initial ? "Edit environment" : "Create environment"}</b></div><button onClick={onClose} aria-label="Close"><X size={16}/></button></div>
-      <label>ENVIRONMENT NAME</label>
-      <input className="environment-name" value={name} onChange={event => setName(event.target.value)} placeholder="Development"/>
+      <label htmlFor="environment-name">ENVIRONMENT NAME</label>
+      <input id="environment-name" className="environment-name" value={name} onChange={event => setName(event.target.value)} placeholder="Development"/>
       <div className="environment-vars-head"><span>VARIABLE</span><span>VALUE</span><span/></div>
       <div className="environment-vars">
         {variables.map(item => <div className="environment-var" key={item.id}>
-          <input type="checkbox" checked={item.enabled} onChange={event => updateVariable(item.id,{enabled:event.target.checked})}/>
-          <input value={item.key} onChange={event => updateVariable(item.id,{key:event.target.value})} placeholder="API_BASE_URL"/>
-          <input type="password" value={item.value} onChange={event => updateVariable(item.id,{value:event.target.value})} placeholder="Variable value"/>
+          <label className="sr-only" htmlFor={`env-enabled-${item.id}`}>Enable {item.key || "environment variable"}</label><input id={`env-enabled-${item.id}`} type="checkbox" checked={item.enabled} onChange={event => updateVariable(item.id,{enabled:event.target.checked})}/>
+          <label className="sr-only" htmlFor={`env-key-${item.id}`}>Variable name</label><input id={`env-key-${item.id}`} value={item.key} onChange={event => updateVariable(item.id,{key:event.target.value})} placeholder="API_BASE_URL"/>
+          <label className="sr-only" htmlFor={`env-value-${item.id}`}>Variable value</label><input id={`env-value-${item.id}`} type="password" value={item.value} onChange={event => updateVariable(item.id,{value:event.target.value})} placeholder="Variable value"/>
           <button onClick={() => setVariables(items => items.filter(variable => variable.id !== item.id))} aria-label="Remove variable"><Trash2 size={14}/></button>
         </div>)}
       </div>
