@@ -70,7 +70,7 @@ npm run build
 npm run test:e2e
 ```
 
-Authenticated Playwright workspace tests require `DEVLENS_E2E_EMAIL` and `DEVLENS_E2E_PASSWORD`. Public landing, sign-in entry, password recovery entry, reduced-motion, and signed-out route tests run without a test account.
+Authenticated Playwright workspace tests require the GitHub Actions secrets `DEVLENS_E2E_EMAIL` and `DEVLENS_E2E_PASSWORD`, plus the two `VITE_SUPABASE_*` secrets. Use a dedicated, email-confirmed test account. Public landing, mobile scrolling, folder interaction, sign-in entry, password recovery entry, reduced-motion, and signed-out route tests run without a test account. Deployment also runs these public checks against the live production domain after publishing.
 
 ## Database and sharing
 
