@@ -640,8 +640,7 @@ export default function App() {
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
       <nav className="side-nav">
-        <button className={showTools ? "active" : ""} onClick={() => navigateTo("tools")}><Braces size={17}/>Utilities<ChevronDown size={14} className="nav-chevron"/></button>
-        {showTools && <div className="tool-subnav">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL importer","cURL exporter"].map(tool=><button key={tool} onClick={()=>setActiveUtility(tool)}>{tool}</button>)}</div>}
+        <button className={currentPage === "tools" ? "active" : ""} onClick={() => navigateTo("tools")}><Braces size={17}/>Developer tools<ChevronRight size={14} className="nav-chevron"/></button>
       </nav>
       <div className="sidebar-bottom">
         <div className="secure-note"><ShieldCheck size={16}/><span><b>Private by design</b><small>Secrets stay in your workspace.</small></span></div>
