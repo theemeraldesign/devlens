@@ -70,6 +70,7 @@ test("landing motion respects reduced-motion preferences", async ({ page }) => {
 
 test("landing page exposes a keyboard skip link", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Make every API make sense/ })).toBeVisible();
   const link = page.getByRole("link", { name: "Skip to content" });
   await link.focus();
   await expect(link).toBeVisible();
