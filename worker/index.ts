@@ -4,6 +4,7 @@ interface Env {
   MAX_RESPONSE_BYTES: string;
   REQUEST_TIMEOUT_MS: string;
   API_RATE_LIMITER: RateLimit;
+  PROXY_EGRESS_ENABLED: string;
 }
 
 type ProxyInput = {
@@ -127,6 +128,10 @@ export function buildOutboundBody(method: string, bodyType: ProxyInput["bodyType
   return rawBody;
 }
 
+export function isProxyEgressEnabled(value: string | undefined): boolean {
+  return value === "true";
+}
+
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store" } });
 }
@@ -243,7 +248,10 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/api/health") return json({ ok: true, service: "devlens" });
-    if (url.pathname === "/api/proxy" && request.method === "POST") return proxy(request, env);
+    if (url.pathname === "/api/proxy" && request.method === "POST") {
+      if (!isProxyEgressEnabled(env.PROXY_EGRESS_ENABLED)) return json({ error: "The API request proxy is temporarily disabled while secure outbound networking is configured." }, 503);
+      return proxy(request, env);
+    }
     if (url.pathname.startsWith("/api/")) return json({ error: "Not found." }, 404);
     return env.ASSETS.fetch(request);
   }
