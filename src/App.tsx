@@ -356,7 +356,7 @@ export default function App() {
       {mobilePanel==="utilities" && <div className="mobile-utility-grid">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL exporter"].map(tool=><button key={tool} onClick={()=>{setActiveUtility(tool);setMobilePanel(null);}}>{tool}</button>)}</div>}
     </div>}
     <nav className="mobile-nav" aria-label="Workspace navigation">
-      <button className={!mobilePanel?"active":""} onClick={()=>setMobilePanel(null)}><Activity size={18}/><span>Workspace</span></button>
+      <button className={!mobilePanel?"active":""} onClick={()=>{setActiveNav("Collections");setMobilePanel(null);}}><Activity size={18}/><span>Workspace</span></button>
       <button className={mobilePanel==="collections"?"active":""} onClick={()=>{setActiveNav("Collections");setMobilePanel(mobilePanel==="collections"?null:"collections");}}><Folder size={18}/><span>Collections</span></button>
       <button className={mobilePanel==="environments"?"active":""} onClick={()=>{setActiveNav("Environments");setMobilePanel(mobilePanel==="environments"?null:"environments");}}><Globe2 size={18}/><span>Environments</span></button>
       <button className={mobilePanel==="history"?"active":""} onClick={()=>{setActiveNav("History");setMobilePanel(mobilePanel==="history"?null:"history");}}><History size={18}/><span>History</span></button>
