@@ -33,20 +33,23 @@
 - The gateway blocks redirects and strips response cookies.
 - The Worker applies approximate limits of 60 requests per minute per source IP and per verified user.
 - Worker request bodies are capped at 1 MB. Gateway request bodies are capped at 2 MB. Upstream response bodies are capped at 5 MB.
+- Upstream response headers are capped at 60 entries and 16 KB. Response cookies are omitted.
 - Requests time out after 20 seconds.
+- Brotli response decoding is disabled in the gateway as defence in depth against CVE-2026-111497.
 - Public snapshots redact credential-like URL query values, remove sensitive JSON fields from request bodies, and omit non-JSON request bodies.
 - Request history stores method, redacted URL, status and duration only. It does not store request or response bodies or credential headers.
 - JWT inspection is decode-only. It does not claim to verify signatures.
 
 ## Runtime hardening
 
-The Vercel gateway runs on the patched Node.js 22 release line. Brotli response decoding is disabled as defence in depth against CVE-2026-111497. Keep the runtime on a patched supported Node.js release and update dependencies through reviewed changes.
+The Vercel gateway project is configured for Node.js 22.x. The gateway package and CI workflows require the patched 22.x release line, 22.23.4 or later. Keep the runtime on a patched supported Node.js release and update dependencies through reviewed changes.
 
 ## Remaining operational work
 
+- Supabase's security advisor currently reports that leaked-password protection is disabled. Enable leaked-password protection in Supabase Auth password security settings.
 - Configure and verify a production SMTP provider before broad public registration and password recovery. Keep email confirmation enabled.
 - Add production alerting and a regular review of gateway abuse and rate-limit metrics.
-- Expand automated integration tests with controlled DNS fixtures, rebinding simulations, and live gateway probes. Existing unit tests cover signature validation, request-envelope validation, and representative private/public IP ranges.
+- Expand automated integration tests with controlled DNS fixtures, rebinding simulations, and live gateway probes. Existing unit tests cover signature validation, request-envelope validation, representative private/public IP ranges, and bounded response headers.
 - Review the gateway dependency and its security advisories during routine maintenance.
 
 This is a layered application-level egress control. It is not a promise that arbitrary internet destinations are harmless. Users should only send requests to services they are authorised to access.
