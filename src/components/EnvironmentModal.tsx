@@ -12,8 +12,8 @@ type Props = {
 
 const newVariable = (): EnvironmentVariable => ({ id: crypto.randomUUID(), key: "", value: "", enabled: true });
 
-export default function EnvironmentModal({
-  const dialogRef = useModalAccessibility(onClose); initial, onClose, onSave, onDelete }: Props) {
+export default function EnvironmentModal({ initial, onClose, onSave, onDelete }: Props) {
+  const dialogRef = useModalAccessibility(onClose);
   const [name, setName] = useState(initial?.name ?? "New environment");
   const [variables, setVariables] = useState<EnvironmentVariable[]>(initial?.variables ?? [newVariable()]);
   const [error, setError] = useState("");
