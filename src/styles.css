@@ -354,3 +354,16 @@
 @media(max-width:380px){.landing-header{padding:0 13px}.landing-header>div:last-child{gap:8px}.landing-header-cta{font-size:9px}.landing-hero{padding-left:14px;padding-right:14px}.landing-proof{font-size:6px}.preview-body{grid-template-columns:74px minmax(0,1fr)}.landing-features,.landing-workflow{padding-left:14px;padding-right:14px}.landing-security{margin-left:14px;margin-right:14px}.footer-light{grid-template-columns:1fr 1fr}}
 @media(prefers-reduced-motion:reduce){.landing-page *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.preview-window{transform:none!important}}
 .auth-loading{min-height:100vh;display:grid;place-items:center;background:#0d1118;color:#e5a267;font:11px "DM Mono",monospace}
+
+
+.formdata-upload{margin-top:16px;padding:12px;border:1px dashed var(--line);border-radius:7px;background:var(--panel2)}
+.formdata-upload-fields{display:grid;grid-template-columns:95px minmax(90px,.6fr) 90px minmax(120px,1fr);gap:8px;align-items:center}
+.formdata-upload-fields label{font:8px "DM Mono",monospace;color:var(--muted);letter-spacing:.6px}
+.formdata-upload-fields input[type=text]{min-width:0;height:34px;border:1px solid var(--line);border-radius:5px;background:var(--input);color:var(--text);padding:0 8px;font:10px "DM Mono",monospace}
+.formdata-upload-fields input[type=file]{min-width:0;width:100%;color:var(--muted);font:9px "DM Sans",sans-serif}
+.formdata-file{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:8px 9px;border-radius:5px;background:var(--input);color:var(--text);font-size:10px}
+.formdata-file>span{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.formdata-file small{color:var(--muted);font:8px "DM Mono",monospace}
+.formdata-file button{width:30px;height:30px;border:0;background:none;color:var(--muted)}
+.formdata-upload>p{margin:9px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
+@media(max-width:680px){.formdata-upload-fields{grid-template-columns:1fr 1fr}.formdata-upload-fields label{align-self:end}.formdata-upload-fields input[type=file]{grid-column:2}.formdata-upload-fields input[type=text]{grid-column:2}}
