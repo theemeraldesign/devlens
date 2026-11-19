@@ -1,5 +1,5 @@
 import { guardedFetch } from "guarded-fetch";
-import { validateEnvelope, verifySignature } from "./security.mjs";
+import { collectResponseHeaders, validateEnvelope, verifySignature } from "./security.mjs";
 
 export const config = { api: { bodyParser: false } };
 
@@ -97,6 +97,7 @@ export default async function handler(req, res) {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const startedAt = Date.now();
   try {
     const upstream = await guardedFetch(input.url, {
       method: input.method,
@@ -105,20 +106,22 @@ export default async function handler(req, res) {
       signal: controller.signal,
       timeoutMs: TIMEOUT_MS,
       followRedirects: false,
+      blockedEncodings: ["br"],
       opaqueErrors: true
     });
     const result = await readResponse(upstream);
-    const responseHeaders = Object.fromEntries([...upstream.headers.entries()].filter(([key]) => !["set-cookie", "set-cookie2"].includes(key.toLowerCase())));
+    const responseHeaders = collectResponseHeaders(upstream.headers);
     return send(res, 200, {
       status: upstream.status,
       statusText: upstream.statusText,
-      duration: 0,
+      duration: Date.now() - startedAt,
       size: result.size,
       headers: responseHeaders,
       body: result.body
     });
   } catch (error) {
     if (error?.message === "RESPONSE_TOO_LARGE") return send(res, 413, { error: "Response exceeded the 5 MB inspection limit." });
+    if (error?.message === "RESPONSE_HEADERS_TOO_LARGE") return send(res, 502, { error: "The upstream response headers exceeded the inspection limit." });
     return send(res, error?.code === "timeout" || error?.name === "AbortError" ? 504 : 502, { error: "The upstream request failed or the destination was blocked." });
   } finally {
     clearTimeout(timeout);
