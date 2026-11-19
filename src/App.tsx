@@ -127,7 +127,7 @@ export default function App() {
     setActiveCollectionId(collection.id);
     setShowNew(false);
     if (supabase && accountId) {
-      const { error: cloudError } = await supabase.from("collections").insert({ id: collection.id, owner_id: accountId, name, content: { requests: [] } });
+      const { error: cloudError } = await supabase.from("collections").insert({ id: collection.id, owner_id: accountId, guest_id: collection.id, name, content: { requests: [] } });
       if (cloudError) setAccountNotice(cloudError.message);
     }
   }
@@ -147,6 +147,7 @@ export default function App() {
         const { error: cloudError } = await supabase.from("collections").upsert({
           id: cloudCollection.id,
           owner_id: accountId,
+          guest_id: cloudCollection.id,
           name: cloudCollection.name,
           content: { requests: cloudCollection.requests }
         });
