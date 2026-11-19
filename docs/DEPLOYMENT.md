@@ -22,8 +22,8 @@ Do not add a Supabase service-role key to GitHub Actions or the browser build. T
 3. Select Deploy DevLens to Cloudflare.
 4. Select Run workflow on the main branch. The workflow uses Cloudflare's current Wrangler Action v4.
 
-The workflow stops before deployment if typecheck, unit tests or the production build fails.
+The workflow stops before deployment if typecheck, unit tests or the production build fails. The Worker ships with `PROXY_EGRESS_ENABLED=false`, so the app can be deployed without exposing the unfinished outbound proxy.
 
 ## Production gate
 
-Do not enable public API proxy traffic until DNS-pinned outbound egress or an equivalent reviewed SSRF control is in place. The current Worker validates DNS answers and blocks redirects, but it cannot guarantee that the address used by the subsequent outbound fetch is the same address that was validated.
+Do not change `PROXY_EGRESS_ENABLED` to `true` until DNS-pinned outbound egress or an equivalent reviewed SSRF control is in place. The current Worker validates DNS answers and blocks redirects, but it cannot guarantee that the address used by the subsequent outbound fetch is the same address that was validated. See [the security review](SECURITY.md).
