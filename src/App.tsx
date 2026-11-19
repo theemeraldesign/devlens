@@ -345,7 +345,7 @@ export default function App() {
     </main>
     {showEnvironmentModal && <EnvironmentModal initial={editingEnvironment} onClose={() => setShowEnvironmentModal(false)} onSave={saveEnvironment} onDelete={deleteEnvironment} />}
     {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
-    {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
+    {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
     {showNew && <div className="modal-backdrop" onClick={()=>setShowNew(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title"><b>Create a collection</b><button onClick={()=>setShowNew(false)}><X size={16}/></button></div><p>Give your requests a home.</p><input value={collectionName} onChange={e=>setCollectionName(e.target.value)} placeholder="Collection name"/><button className="send-button modal-submit" onClick={createCollection}>Create collection</button></div></div>}
   </div>;
 }
