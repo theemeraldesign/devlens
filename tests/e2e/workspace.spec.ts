@@ -334,7 +334,6 @@ test("response inspector supports pretty, raw, headers and JSON download", async
   await page.getByRole("button", { name: "History" }).click();
   await expect(page.locator(".history-table")).toContainText(url);
   await page.reload();
-  await page.getByRole("button", { name: "History" }).click();
   await expect(page.locator(".history-table")).toContainText(url);
 });
 
@@ -421,9 +420,24 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   await page.getByRole("button", { name: "DevLens home" }).click();
   const unpublish = page.getByRole("button", { name: "Unpublish " + name });
   await expect(unpublish).toBeVisible();
+  let forceUnauthorizedUnpublish = true;
+  await page.route("**/functions/v1/publish-collection", async route => {
+    const postData = route.request().postData();
+    if (forceUnauthorizedUnpublish && route.request().method() === "POST" && postData) {
+      try {
+        if (JSON.parse(postData).action === "unpublish") {
+          forceUnauthorizedUnpublish = false;
+          await route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ message: "Session refresh required." }) });
+          return;
+        }
+      } catch { /* Continue non-JSON function requests. */ }
+    }
+    await route.continue();
+  });
   page.once("dialog", dialog => dialog.accept());
   await unpublish.click();
   await expect(page.locator(".import-banner")).toContainText("no longer public");
+  expect(forceUnauthorizedUnpublish).toBe(false);
   await sharedPage.goto(shareUrl!);
   await expect(sharedPage.locator(".shared-error")).toContainText("does not exist or is no longer public");
 
