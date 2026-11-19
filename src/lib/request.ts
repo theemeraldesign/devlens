@@ -4,7 +4,7 @@ export type ApiRequest = { method: HttpMethod; url: string; headers: HeaderPair[
 export type ApiResponse = { status: number; statusText: string; duration: number; size: number; headers: Record<string, string>; body: string };
 
 const PROXY_DISABLED_MESSAGE = "The API request proxy is temporarily disabled while secure outbound networking is configured.";
-const MAX_BROWSER_REQUEST_BYTES = 1024 * 1024;
+const MAX_BROWSER_REQUEST_BYTES = 10 * 1024 * 1024;
 const MAX_BROWSER_RESPONSE_BYTES = 5 * 1024 * 1024;
 
 function getClientId(): string {
@@ -20,8 +20,8 @@ function getClientId(): string {
   }
 }
 
-function buildBrowserBody(request: ApiRequest): BodyInit | undefined {
-  if (!request.body || request.method === "GET" || request.method === "HEAD") return undefined;
+function buildBrowserBody(request: ApiRequest, files: Array<{ key: string; file: File }> = []): BodyInit | undefined {
+  if ((!request.body && files.length === 0) || request.method === "GET" || request.method === "HEAD") return undefined;
   if (request.bodyType !== "formdata") return request.body;
   let fields: unknown;
   try { fields = JSON.parse(request.body); } catch { throw new Error("Form data is invalid. Recheck its fields and try again."); }
@@ -31,6 +31,9 @@ function buildBrowserBody(request: ApiRequest): BodyInit | undefined {
     if (field && typeof field.key === "string" && field.key.trim()) {
       form.append(field.key, typeof field.value === "string" ? field.value : "");
     }
+  }
+  for (const item of files) {
+    if (item.key.trim()) form.append(item.key.trim(), item.file, item.file.name);
   }
   return form;
 }
@@ -67,16 +70,17 @@ async function readLimitedResponse(response: Response): Promise<{ body: string; 
   return { body: new TextDecoder().decode(merged), size };
 }
 
-async function sendBrowserRequest(request: ApiRequest, signal?: AbortSignal): Promise<ApiResponse> {
+async function sendBrowserRequest(request: ApiRequest, signal?: AbortSignal, files: Array<{ key: string; file: File }> = []): Promise<ApiResponse> {
   const started = performance.now();
   const headers = new Headers();
   for (const item of request.headers) {
     if (item.enabled && item.key.trim()) headers.set(item.key.trim(), item.value);
   }
   if (request.bodyType === "formdata") headers.delete("content-type");
-  const body = buildBrowserBody(request);
-  if (request.body && new TextEncoder().encode(request.body).byteLength > MAX_BROWSER_REQUEST_BYTES) {
-    throw new Error("The request body exceeds DevLens's 1 MB browser-mode limit.");
+  const body = buildBrowserBody(request, files);
+  const requestBytes = new TextEncoder().encode(request.body).byteLength + files.reduce((total, item) => total + item.file.size, 0);
+  if (requestBytes > MAX_BROWSER_REQUEST_BYTES) {
+    throw new Error("The request exceeds DevLens's 10 MB browser-mode upload limit.");
   }
   try {
     const response = await fetch(request.url, {
@@ -105,7 +109,9 @@ async function sendBrowserRequest(request: ApiRequest, signal?: AbortSignal): Pr
   }
 }
 
-export async function sendRequest(request: ApiRequest, signal?: AbortSignal): Promise<ApiResponse> {
+export async function sendRequest(request: ApiRequest, signal?: AbortSignal, files: Array<{ key: string; file: File }> = []): Promise<ApiResponse> {
+  // Multipart files are sent directly from the browser. The JSON Worker proxy cannot carry File objects.
+  if (files.length) return sendBrowserRequest(request, signal, files);
   const started = performance.now();
   const headers = Object.fromEntries(request.headers.filter(h => h.enabled && h.key.trim()).map(h => [h.key.trim(), h.value]));
   const response = await fetch("/api/proxy", {
@@ -116,7 +122,7 @@ export async function sendRequest(request: ApiRequest, signal?: AbortSignal): Pr
   });
   const payload = await response.json() as ApiResponse & { error?: string };
   if (response.status === 503 && payload.error === PROXY_DISABLED_MESSAGE) {
-    return sendBrowserRequest(request, signal);
+    return sendBrowserRequest(request, signal, files);
   }
   if (!response.ok && payload.error) throw new Error(payload.error);
   return { ...payload, duration: Math.round(performance.now() - started) };
