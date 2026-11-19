@@ -2,27 +2,39 @@
 
 > See your APIs clearly.
 
-DevLens is an open-source API development studio for building requests, inspecting responses, organizing collections, and working with environments.
+DevLens is an open-source API development studio for composing HTTP requests, inspecting responses, organising collections, and managing environments.
 
-## Current build
+## Product experience
 
-The first application foundation is in place:
-- Responsive request studio with seven HTTP methods.
-- Query parameters, editable headers, JSON/text/URL-encoded bodies, multipart form-data text fields and authentication.
-- Response status, duration, size, pretty/raw body and response headers.
-- Guest collections, saved requests, private environments and request history stored in the browser.
-- Environment variable interpolation in URLs, headers, query parameters and request bodies.
-- Email/password account flow through Supabase Auth, with cloud collection, environment and redacted request-history sync.
-- Guest-to-account collection and environment import. Local copies are retained after import.
-- Collection rename, duplicate, delete and JSON import/export.
-- Public read-only collection links with server-side sanitization, import and unpublish.
-- Searchable request history with local and cloud clearing.
-- Redacted request history stored locally for guests and synced to the signed-in account.
-- Developer utilities: JSON formatting, JWT decoding, Base64, URL encoding, UUID generation and cURL import/export.
-- Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks. Outbound proxying is disabled by default until secure egress is configured.
-- Supabase schema with owner-scoped RLS for private data and a separate public snapshot surface.
+- Public product landing page with a responsive workspace preview, first-load motion, reduced-motion support, feature overview, security notes, and split ASCII-light footer.
+- Account-required workspace. Visitors sign up or sign in before accessing request tools.
+- Supabase email/password authentication, password recovery, and password update.
+- Private account collections, saved requests, environments, and redacted request history.
+- Public, read-only collection links with server-side sanitisation, import, and unpublish.
+- Legacy local workspace data import for users who created data before account-only access was introduced.
 
-This is an early development build. Collection management, history search, cURL import/export, public collection links and multipart form-data text fields are implemented. File uploads and advanced utilities remain in progress. The request proxy's DNS validation is a first security layer, not a substitute for a dedicated, DNS-pinned egress gateway. Do not deploy it for public production traffic until the egress design receives a full SSRF review.
+## Request studio
+
+- Seven HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS.
+- URL, query parameters, editable headers, request authentication, and JSON, text, URL-encoded, or multipart bodies.
+- Multipart text fields and file attachments. Browser uploads are limited to 10 MB total and are not saved with collections.
+- Response status, duration, size, headers, pretty/raw body, XML indentation, and JSON/XML/text downloads.
+- Cancel and resend requests.
+- Environment variable interpolation in URLs, headers, query parameters, and request bodies.
+
+## Developer tools
+
+- JSON formatting and diff.
+- JWT header/payload inspection. Decoding does not verify signatures.
+- Base64 and URL encode/decode.
+- UUID generation.
+- cURL import/export with shell operator and command substitution rejection.
+
+## Network and security status
+
+The Worker API proxy remains disabled. DevLens currently uses direct browser requests when the proxy reports that it is disabled. This works only when the target API permits CORS from the DevLens origin. Multipart file uploads use the same browser path because the current JSON proxy transport does not carry browser File objects.
+
+The Worker includes request/response limits, timeout controls, redirect restrictions, and public-address checks. Those checks are not a complete DNS-pinned egress design. Do not enable public server-side proxy traffic until the egress implementation has passed a dedicated SSRF review and adversarial tests. DevLens does not claim that APIs blocking browser CORS are supported yet.
 
 ## Stack
 
@@ -34,7 +46,7 @@ This is an early development build. Collection management, history search, cURL 
 
 ## Local development
 
-Requirements: Node.js 22.12+
+Requirements: Node.js 22.12+.
 
 ```bash
 npm install
@@ -42,12 +54,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Set the Supabase project URL and publishable key in `.env.local`:
+Set these values in `.env.local`:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-The publishable key is designed for client-side use. Never expose a Supabase secret/service-role key in browser code.
+The publishable key is designed for browser use. Never expose a Supabase secret or service-role key in client code.
 
 ## Checks
 
@@ -58,13 +70,15 @@ npm run build
 npm run test:e2e
 ```
 
-## Database
+Authenticated Playwright workspace tests require `DEVLENS_E2E_EMAIL` and `DEVLENS_E2E_PASSWORD`. Public landing, sign-in entry, password recovery entry, reduced-motion, and signed-out route tests run without a test account.
 
-Migrations live in `supabase/migrations`. The initial schema is applied to the dedicated DevLens Supabase project. All private tables have RLS enabled. Public visitors only receive the restricted `public_collections` view. Anonymous and authenticated clients cannot write snapshots or read owner and collection IDs. Public publishing runs through an authenticated Edge Function with server-side sanitization. See [public sharing security](docs/SHARING.md).
+## Database and sharing
+
+Migrations live in `supabase/migrations`. Private tables use owner-scoped row-level security. Public visitors receive only the restricted `public_collections` view. Publishing runs through an authenticated Supabase Edge Function with server-side sanitisation. See [sharing security](docs/SHARING.md).
 
 ## Deployment
 
-Cloudflare Worker configuration lives in `wrangler.jsonc`. The manual GitHub Actions deployment workflow is documented in [Cloudflare deployment](docs/DEPLOYMENT.md). Production API proxy traffic remains gated on a complete SSRF/egress security review. See [the security review](docs/SECURITY.md) for the threat model and current release blockers.
+Cloudflare Worker configuration lives in `wrangler.jsonc`. GitHub Actions run typecheck, unit tests, production build, and Playwright checks before deployment. Production proxy traffic remains disabled pending secure egress review. See [deployment](docs/DEPLOYMENT.md) and [security](docs/SECURITY.md).
 
 ## License
 
