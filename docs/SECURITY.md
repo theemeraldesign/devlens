@@ -46,7 +46,7 @@ The Vercel gateway project is configured for Node.js 22.x. The gateway package a
 
 ## Remaining operational work
 
-- Supabase's security advisor currently reports that leaked-password protection is disabled. Enable leaked-password protection in Supabase Auth password security settings.
+- Supabase's security advisor reports that leaked-password protection is disabled. The current Supabase organization is on the Free plan, while Supabase documents leaked-password protection as a Pro-and-above feature. This remains a known plan limitation unless the project is upgraded. Keep email confirmation enabled and use strong minimum password requirements.
 - Configure and verify a production SMTP provider before broad public registration and password recovery. Keep email confirmation enabled.
 - Add production alerting and a regular review of gateway abuse and rate-limit metrics.
 - Expand automated integration tests with controlled DNS fixtures, rebinding simulations, and live gateway probes. Existing unit tests cover signature validation, request-envelope validation, representative private/public IP ranges, and bounded response headers.
