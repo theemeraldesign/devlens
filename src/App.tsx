@@ -646,6 +646,7 @@ export default function App() {
   if (!accountId) return <><LandingPage onGetStarted={() => { setAuthMode("signup"); setShowAuth(true); }} onSignIn={() => { setAuthMode("signin"); setShowAuth(true); }}/>{showAuth && <AuthModal initialMode={window.location.search.includes("password-reset=1") ? "update" : authMode} onClose={() => { setShowAuth(false); if (window.location.search.includes("password-reset=1")) window.history.replaceState({}, "", window.location.pathname); }} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); }} />}</>;
 
   return <div className={dark ? "app dark app-enter" : "app light app-enter"}>
+    <a className="skip-link" href="#request-workspace">Skip to workspace</a>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Activity size={18} strokeWidth={2.4}/></div><span>dev<span className="brand-accent">lens</span></span><span className="beta">BETA</span></div>
       <div className="workspace-switch"><div className="workspace-avatar">{collectionName.slice(0,1).toUpperCase() || "D"}</div><span><b>{collectionName}</b><small>{"Synced account workspace"}</small></span></div>
@@ -668,7 +669,7 @@ export default function App() {
       </div>
     </aside>
 
-    <main className="main" id="request-workspace">
+    <main className="main" id="request-workspace" tabIndex={-1}>
       <header className="topbar">
         <button className="top-brand" onClick={()=>navigateTo("workspace")} aria-label="DevLens home"><span className="top-brand-mark"><Activity size={17}/></span><span>dev<span>lens</span></span></button>
         <div className="breadcrumbs"><ChevronRight size={13}/><b>{pageTitles[currentPage]}</b></div>
