@@ -41,7 +41,7 @@ export function exportCurl(input: { method: string; url: string; headers: Record
 }
 
 export function safePublicCollection(value: unknown): unknown {
-  const blocked = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|x-auth-token)$/i;
+  const blocked = /^(authorization|proxy-authorization|cookie|cookies|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|x-auth-token|auth|environment|environments|variables|history|request_history|owner_id|collection_id|user_id|email|username|avatar_url|profile|account)$/i;
   const visit = (input: unknown): unknown => {
     if (Array.isArray(input)) {
       return input
@@ -84,6 +84,8 @@ const sensitiveQueryKey = /^(key|api[-_]?key|apikey|token|access_token|refresh_t
 export function redactUrl(source: string): string {
   try {
     const url = new URL(source);
+    url.username = "";
+    url.password = "";
     for (const key of [...url.searchParams.keys()]) {
       if (sensitiveQueryKey.test(key)) url.searchParams.set(key, "[REDACTED]");
     }
