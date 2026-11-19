@@ -143,3 +143,7 @@
 .download-response:hover{color:var(--text);border-color:var(--accent)}
 @media(max-width:680px){.response-tabs{gap:12px}.download-response{padding:5px 6px;font-size:9px}.copy-response{font-size:10px!important}}
 @media(prefers-reduced-motion:reduce){.app-enter,.app-enter .sidebar,.app-enter .main{animation:none!important}}
+
+.account-button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel2);color:var(--text);font:600 10px "DM Sans",sans-serif;cursor:pointer;white-space:nowrap}
+.account-button:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:680px){.account-button{min-height:32px;padding:0 8px;font-size:10px}.account-button svg{width:13px;height:13px}.connection{display:none}}
