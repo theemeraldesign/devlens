@@ -396,6 +396,7 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   await expect(originalCard).toBeVisible();
   await originalCard.getByRole("button", { name: "Open workspace" }).click();
   await page.getByTitle("Save request to this device").click();
+  await expect(page.locator(".import-banner")).toContainText("Request saved to collection.");
   await page.goto("/collections");
   await expect(originalCard).toBeVisible();
   const publishResponsePromise = page.waitForResponse(response => {
