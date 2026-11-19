@@ -19,7 +19,7 @@
 - Public snapshots use a restricted invoker view. Owner and collection IDs are not exposed to anonymous clients.
 - The Worker rejects non-HTTP(S) URLs, private IP literals, private DNS answers, credentials embedded in URLs and upstream redirects.
 - The Worker streams and caps request and response bodies, caps header count and size, and applies a timeout.
-- A Cloudflare Rate Limiting binding limits repeated proxy calls per browser identity and source IP.
+- A Cloudflare Rate Limiting binding applies an approximate per-location limit of 60 proxy calls per minute per browser identity and source IP. This is a burst-control layer, not a strict global quota.
 - JWT inspection is decode-only. It does not claim to verify signatures.
 
 ## Production release blockers
