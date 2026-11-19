@@ -1,21 +1,42 @@
-# Cloudflare deployment
+# Production deployment
 
-The production deployment workflow runs on pushes to `main` and can also be started manually. It runs typecheck, unit tests, a production build, and browser checks before deploying the Worker and static assets. It then runs the public browser checks against `https://devlens.cc.cd`.
+The production release is driven by GitHub Actions on pushes to `main`. The workflow runs typecheck, unit tests, production build, live browser checks, and authenticated end-to-end tests before the release is considered complete.
 
-## GitHub repository secrets
+## Services
 
-Add these under Settings → Secrets and variables → Actions:
+| Service | Host | Source |
+| --- | --- | --- |
+| Web app and Worker | Cloudflare | `wrangler.jsonc` |
+| Secure egress gateway | Vercel | `gateway/` |
+| Auth and database | Supabase | `supabase/` |
 
-| Secret | Value |
+## GitHub Actions secrets
+
+Configure these under repository Settings → Secrets and variables → Actions:
+
+| Secret | Purpose |
 | --- | --- |
-| CLOUDFLARE_API_TOKEN | A Cloudflare API token scoped to the Projects Account with Workers Scripts: Edit and Account Settings: Read. The Cloudflare dashboard's Edit Cloudflare Workers token template is another supported starting point; restrict its account scope. |
-| CLOUDFLARE_ACCOUNT_ID | `c76cbb7dc13126491526912181cae743`. |
-| VITE_SUPABASE_URL | `https://ufptcrhuibihwzjbjhqc.supabase.co`. |
-| VITE_SUPABASE_PUBLISHABLE_KEY | The project's Supabase publishable key. Safe for browser use. |
-| DEVLENS_E2E_EMAIL | Email for a dedicated, confirmed Supabase test account. |
-| DEVLENS_E2E_PASSWORD | Password for that test account. |
+| `CLOUDFLARE_API_TOKEN` | Scoped token for deploying Workers and reading account settings |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Projects Account ID |
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase browser publishable key |
+| `DEVLENS_E2E_EMAIL` | Dedicated, confirmed test account |
+| `DEVLENS_E2E_PASSWORD` | Dedicated test account password |
 
-Do not add a Supabase secret or service-role key to GitHub Actions or the browser build. The publishing Edge Function uses the service-role key supplied by Supabase's managed runtime. The CI workflow uses the VITE keys and optional test-account secrets to run account-backed workspace tests. Keep the test account separate from your personal account.
+Do not add a Supabase secret or service-role key to GitHub Actions or the browser build. The publishing Edge Function uses the service-role key supplied by Supabase's managed runtime. Keep the E2E account separate from your personal account.
+
+## Gateway environment
+
+The Vercel project is `devlens-egress`. Set `DEVLENS_EGRESS_SECRET` in its Production environment. The Cloudflare Worker must have the matching `EGRESS_SHARED_SECRET` secret. Never put either value in source control or the frontend.
+
+The Worker configuration supplies:
+
+- `PROXY_EGRESS_ENABLED=true`
+- `SUPABASE_URL` and the browser-safe publishable key
+- `EGRESS_GATEWAY_URL=https://devlens-egress.vercel.app/api/proxy`
+- Request, response and timeout limits
+
+The Vercel gateway uses Node.js 22.x. Keep it on a patched release, currently Node.js 22.23.4 or later in the 22.x line. The gateway also disables Brotli response decoding as defence in depth.
 
 ## Supabase Auth URL configuration
 
@@ -30,17 +51,23 @@ The password recovery flow depends on the redirect URL being on the allow list. 
 
 ## Production email delivery
 
-Supabase's default SMTP service is for development only. It sends only to authorised team addresses and currently has a two-email-per-hour limit. Configure a custom SMTP provider before opening public registration or password recovery. Use a verified sender domain and configure its SPF, DKIM, and DMARC records. Keep email confirmation enabled. Supabase supports providers such as Resend and Brevo.
+Supabase's default SMTP service is for development only. It sends only to authorised team addresses and has a low sending limit. Configure a verified SMTP provider before broad public registration or password recovery. Use a verified sender domain and configure SPF, DKIM, and DMARC. Keep email confirmation enabled.
 
-## Run deployment
+## Deploy and verify
 
-1. Open the DevLens repository on GitHub.
-2. Select Actions.
-3. Select Deploy DevLens to Cloudflare.
-4. Select Run workflow on the main branch. The workflow uses Cloudflare's current Wrangler Action v4.
+1. Push reviewed changes to `main`.
+2. GitHub Actions runs CI and the Cloudflare deployment workflow.
+3. The deployment workflow builds and deploys the Worker and static assets.
+4. It probes the production app routes and the Vercel gateway.
+5. It installs Chromium and runs authenticated Playwright tests against `https://devlens.cc.cd`.
+6. Confirm both the CI and deployment workflow runs are green.
 
-The workflow stops before deployment if typecheck, unit tests or the production build fails. The Worker ships with `PROXY_EGRESS_ENABLED=false`, so the app can be deployed without exposing the unfinished outbound proxy.
+The Vercel Git integration deploys the gateway from the same repository. Confirm its latest Production deployment is Ready after gateway changes.
 
-## Production gate
+## Rollback
 
-Do not change `PROXY_EGRESS_ENABLED` to `true` until DNS-pinned outbound egress or an equivalent reviewed SSRF control is in place. The current Worker validates DNS answers and blocks redirects, but it cannot guarantee that the address used by the subsequent outbound fetch is the same address that was validated. See [the security review](SECURITY.md).
+- Cloudflare Worker: use the Workers Versions/Deployments history to roll back to the last known-good version.
+- Vercel gateway: promote the previous Ready production deployment.
+- GitHub: revert the offending commit, then allow the normal CI and deployment workflows to run.
+
+Never roll back only one side of a Worker/gateway protocol change. Keep the Worker and gateway compatible.
