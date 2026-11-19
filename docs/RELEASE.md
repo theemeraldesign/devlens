@@ -7,7 +7,7 @@
 - Source repository: https://github.com/theemeraldesign/devlens
 - Production branch: `main`
 - Release verification date: 19 November 2026
-- Verified source commit: `555fb25574e1e7597b216640d3ee0e8abcb69e21`
+- Verified source commit: `3e07840dc86ee5c386fb9835324a6db1eedaf7ca`
 
 ## Included capabilities
 
@@ -25,12 +25,16 @@
 
 The latest release verification recorded:
 
-- GitHub CI workflow: [run 44521866022](https://github.com/theemeraldesign/devlens/actions/runs/44521866022).
-- Cloudflare deployment workflow: [run 44521866034](https://github.com/theemeraldesign/devlens/actions/runs/44521866034).
-- Vercel production gateway deployment: Ready.
+- GitHub CI workflow: [run 44528844923](https://github.com/theemeraldesign/devlens/actions/runs/44528844923), successful.
+- Cloudflare deployment workflow: [run 44528844870](https://github.com/theemeraldesign/devlens/actions/runs/44528844870), successful.
+- TypeScript check and production build: passed.
+- Unit tests: 69 passed.
+- Gateway security tests: 7 passed.
+- Playwright browser checks: 28 passed, 1 skipped. The skipped case is the live external API smoke test, which remains opt-in and was not repeated in this release pass.
+- Production route smoke tests: passed.
+- Authenticated production browser checks: passed, including publish, open, import, unpublish and expired-session retry.
+- Vercel production gateway deployment for the verified commit: Ready.
 - Vercel runtime error scan: no errors in the checked 24-hour window.
-
-The CI workflow runs typecheck, unit tests, production build, Playwright browser tests and gateway tests. The deployment workflow runs production route checks and authenticated browser verification. Counts from the next run should be recorded here after the expanded acceptance suite finishes.
 
 ## Operational dependencies and limitations
 
