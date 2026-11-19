@@ -319,7 +319,7 @@ export default function App() {
     const body = { collectionId, action };
     const first = await supabase!.functions.invoke("publish-collection", { body });
     const status = (first.error as unknown as { context?: Response } | null)?.context?.status;
-    if (status !== 401) return first;
+    if (!first.error || (status !== undefined && status !== 401)) return first;
     const { data: refreshed, error: refreshError } = await supabase!.auth.refreshSession();
     if (refreshError || !refreshed.session) return first;
     return supabase!.functions.invoke("publish-collection", {
