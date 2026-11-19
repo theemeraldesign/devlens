@@ -458,3 +458,17 @@
   .landing-page + .modal-backdrop{padding:14px;align-items:center}
   .landing-page + .modal-backdrop .auth-modal{padding:22px 19px;border-radius:14px}
 }
+
+
+/* Email verification code input */
+.auth-modal .auth-otp-input{
+  height:58px!important;
+  text-align:center;
+  letter-spacing:.42em;
+  padding-left:calc(13px + .42em)!important;
+  font:700 25px/1 "DM Mono",monospace!important;
+  color:#f5c18e!important;
+}
+.auth-modal .auth-otp-input::placeholder{letter-spacing:.42em;color:#586575!important}
+.auth-modal .auth-switch:disabled{opacity:.55;cursor:not-allowed}
+.auth-modal .auth-switch svg{display:inline-block;vertical-align:-2px;margin-right:4px}
