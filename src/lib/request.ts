@@ -3,7 +3,6 @@ export type HeaderPair = { id: string; key: string; value: string; enabled: bool
 export type ApiRequest = { method: HttpMethod; url: string; headers: HeaderPair[]; body: string; bodyType?: "json" | "text" | "urlencoded" | "formdata" };
 export type ApiResponse = { status: number; statusText: string; duration: number; size: number; headers: Record<string, string>; body: string };
 
-const PROXY_DISABLED_MESSAGE = "The API request proxy is temporarily disabled while secure outbound networking is configured.";
 const MAX_BROWSER_REQUEST_BYTES = 10 * 1024 * 1024;
 const MAX_BROWSER_RESPONSE_BYTES = 5 * 1024 * 1024;
 
