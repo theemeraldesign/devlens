@@ -19,6 +19,9 @@ export default function UtilityModal({ tool, onClose, onImportRequest }: Props) 
         case "JSON formatter":
           result = prettyJson(input);
           break;
+        case "XML formatter":
+          result = prettyXml(input);
+          break;
         case "JSON diff": {
           const parts = input.split(/\n---\s*\n/);
           if (parts.length !== 2) throw new Error("Paste the first JSON document, then a line with ---, then the second document.");
