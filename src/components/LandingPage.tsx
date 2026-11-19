@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, ArrowRight, ArrowUpRight, Braces, Check, Code2, Github, Globe2, Layers3, LockKeyhole, ShieldCheck, Terminal, Zap } from "lucide-react";
 
 type Props = { onGetStarted: () => void; onSignIn: () => void };
@@ -23,6 +23,7 @@ function AsciiField() {
 function Brand(){return <a className="landing-brand" href="/" aria-label="DevLens home"><span><Activity size={20}/></span><b>dev<span>lens</span></b></a>;}
 
 export default function LandingPage({onGetStarted,onSignIn}:Props){
+ const [folderOpen,setFolderOpen]=useState(false);
  return <div className="landing-page">
   <header className="landing-header"><Brand/><nav><a href="#features">Features</a><a href="#workflow">How it works</a><a href="#security">Security</a></nav><div><button className="landing-signin" onClick={onSignIn}>Sign in</button><button className="landing-header-cta" onClick={onGetStarted}>Create account <ArrowUpRight size={15}/></button></div></header>
   <main>
@@ -38,7 +39,7 @@ export default function LandingPage({onGetStarted,onSignIn}:Props){
    <section className="landing-features" id="features"><div className="landing-kicker">ONE WORKSPACE. LESS FRICTION.</div><div className="landing-section-heading"><h2>Everything around<br/>the request, <em>in focus.</em></h2><p>Move from a raw endpoint to a repeatable workflow. Keep the details close, the interface quiet, and your work organised.</p></div>
     <div className="landing-grid">
      <article><div className="feature-art request-art"><b>POST</b><i/><i/><i/><span><Zap/> Send request</span></div><small>01 / REQUESTS</small><h3>Build with precision.</h3><p>Compose HTTP requests with headers, query parameters, authentication, and flexible request bodies.</p></article>
-     <article><div className="feature-art folder-art"><div><Code2/><Braces/><Globe2/></div><i/></div><small>02 / COLLECTIONS</small><h3>Keep work organised.</h3><p>Save reusable requests in collections. Share clean, read-only snapshots when you choose.</p></article>
+     <article><button type="button" className={folderOpen ? "feature-art folder-art open" : "feature-art folder-art"} aria-label="Toggle collection icon folder" aria-expanded={folderOpen} onClick={()=>setFolderOpen(value=>!value)}><div><Code2/><Braces/><Globe2/></div><i/></button><small>02 / COLLECTIONS</small><h3>Keep work organised.</h3><p>Save reusable requests in collections. Share clean, read-only snapshots when you choose.</p></article>
      <article><div className="feature-art env-art"><span>BASE_URL <b>https://api.dev</b></span><span>API_TOKEN <b>••••••••••</b></span><small>● DEVELOPMENT</small></div><small>03 / ENVIRONMENTS</small><h3>Switch context fast.</h3><p>Manage variables for development, staging, and production without rewriting requests.</p></article>
      <article><div className="feature-art response-art"><span>● RESPONSE.JSON <b>200</b></span><i/><i/><i/><i/></div><small>04 / INSPECTION</small><h3>Understand every result.</h3><p>Read status, timing, headers, and formatted JSON or XML. Download responses for later.</p></article>
      <article><div className="feature-art history-art"><span>● GET <b>/users</b> 200</span><span>● POST <b>/sessions</b> 201</span><span>● PATCH <b>/profile</b> 204</span></div><small>05 / HISTORY</small><h3>Pick up where you left off.</h3><p>Search recent activity and replay requests without losing your flow.</p></article>
