@@ -219,7 +219,7 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.locator(".import-banner")).toContainText("Collection deleted.");
   await expect(page.locator(".collection-list")).not.toContainText(copyName);
-  await renamedCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: `Delete ${renamedName}`, exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(renamedCard).toHaveCount(0);
 });
