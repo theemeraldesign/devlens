@@ -48,7 +48,7 @@ export default function EnvironmentModal({ initial, onClose, onSave, onDelete }:
         </div>)}
       </div>
       <button className="add-row environment-add" onClick={() => setVariables(items => [...items,newVariable()])}><Plus size={14}/> Add variable</button>
-      <p className="environment-note">Use variables as <code>{"{{API_BASE_URL}}"}</code> in request URLs, headers and bodies. Values are stored locally in this guest workspace.</p>
+      <p className="environment-note">Use variables as <code>{"{{API_BASE_URL}}"}</code> in request URLs, headers and bodies. Guest values stay in this browser. Signed-in values sync to your private account.</p>
       {error && <div className="auth-message utility-error">{error}</div>}
       <div className="environment-footer">{initial && <button className="environment-delete" onClick={() => onDelete(initial.id)}>Delete environment</button>}<button className="send-button" onClick={save}>Save environment</button></div>
     </section>
