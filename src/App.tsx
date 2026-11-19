@@ -10,6 +10,7 @@ import AuthModal from "./components/AuthModal";
 import UtilityModal from "./components/UtilityModal";
 import EnvironmentModal from "./components/EnvironmentModal";
 import CollectionModal from "./components/CollectionModal";
+import SharedCollectionPage from "./components/SharedCollectionPage";
 
 const uid = () => crypto.randomUUID();
 const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "application/json", enabled: true }];
@@ -238,6 +239,56 @@ export default function App() {
     } else {
       writeGuestCollections(next.filter(item => !item.cloudOwnerId));
     }
+  }
+
+  async function publishCollection(id: string) {
+    if (!supabase || !accountId) { setShowAuth(true); return; }
+    setAccountNotice("Publishing sanitized collection…");
+    const { data, error: publishError } = await supabase.functions.invoke("publish-collection", { body: { collectionId: id, action: "publish" } });
+    if (publishError || !data?.slug) {
+      setAccountNotice(publishError?.message || data?.error || "Unable to publish this collection.");
+      return;
+    }
+    const shareUrl = window.location.origin + "/share/" + data.slug;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setAccountNotice("Public link copied: " + shareUrl);
+    } catch {
+      setAccountNotice("Collection published. Copy this link: " + shareUrl);
+    }
+  }
+
+  async function importSharedCollection(name: string, rows: Array<Record<string, unknown>>) {
+    const importedRequests = rows.slice(0, 500).flatMap((row, index) => {
+      const method = String(row.method || "GET").toUpperCase();
+      if (!methods.includes(method as HttpMethod) || typeof row.url !== "string") return [];
+      let url: URL;
+      try { url = new URL(row.url); } catch { return []; }
+      if (!["http:", "https:"].includes(url.protocol)) return [];
+      const rawHeaders = Array.isArray(row.headers) ? row.headers : [];
+      const headers = rawHeaders.filter(item => item && typeof item === "object").map(item => {
+        const header = item as Record<string, unknown>;
+        return { key: String(header.key || "").slice(0,128), value: String(header.value || "").slice(0,8192), enabled: header.enabled !== false };
+      });
+      return [{
+        id: uid(), name: typeof row.name === "string" ? row.name.slice(0,120) : "Imported request " + (index + 1),
+        method, url: redactUrl(url.toString()), headers: safeSavedHeaders(headers),
+        body: typeof row.body === "string" ? row.body.slice(0, 100_000) : "",
+        bodyType: row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json",
+        createdAt: new Date().toISOString()
+      }];
+    });
+    const collection: LocalCollection = { id: uid(), name: (name + " (imported)").slice(0,120), requests: importedRequests, updatedAt: new Date().toISOString() };
+    if (supabase && accountId) {
+      const { error: insertError } = await supabase.from("collections").insert({
+        id: collection.id, owner_id: accountId, guest_id: collection.id, name: collection.name,
+        content: { requests: collection.requests }
+      });
+      if (insertError) { window.alert("Import failed: " + insertError.message); return; }
+    } else {
+      writeGuestCollections([collection, ...readGuestCollections()]);
+    }
+    window.location.assign("/");
   }
 
   async function renameCollection(id: string) {
@@ -478,6 +529,9 @@ export default function App() {
     finally { setBusy(false); setAbortController(null); }
   }
 
+  const shareSlug = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{8,80})$/)?.[1] ?? null;
+  if (shareSlug) return <SharedCollectionPage slug={shareSlug} onImport={(name, rows) => void importSharedCollection(name, rows as Array<Record<string, unknown>>)} />;
+
   return <div className={dark ? "app dark" : "app light"}>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Activity size={18} strokeWidth={2.4}/></div><span>dev<span className="brand-accent">lens</span></span><span className="beta">BETA</span></div>
@@ -486,7 +540,7 @@ export default function App() {
       <nav className="side-nav" aria-label="Primary workspace navigation">
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
-      {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><div className="collection-row"><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button><div className="collection-row-actions"><button title={`Rename ${collection.name}`} aria-label={`Rename ${collection.name}`} onClick={()=>void renameCollection(collection.id)}>Rename</button><button title={`Duplicate ${collection.name}`} aria-label={`Duplicate ${collection.name}`} onClick={()=>void duplicateCollection(collection.id)}>Copy</button><button title={`Delete ${collection.name}`} aria-label={`Delete ${collection.name}`} onClick={()=>void deleteCollection(collection.id)}>Delete</button></div></div>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,bodyType:saved.bodyType ?? "json",headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
+      {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><div className="collection-row"><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button><div className="collection-row-actions"><button title={`Rename ${collection.name}`} aria-label={`Rename ${collection.name}`} onClick={()=>void renameCollection(collection.id)}>Rename</button><button title={`Duplicate ${collection.name}`} aria-label={`Duplicate ${collection.name}`} onClick={()=>void duplicateCollection(collection.id)}>Copy</button><button title={`Delete ${collection.name}`} aria-label={`Delete ${collection.name}`} onClick={()=>void deleteCollection(collection.id)}>Delete</button><button title={`Publish ${collection.name}`} aria-label={`Publish ${collection.name}`} onClick={()=>void publishCollection(collection.id)}>Share</button></div></div>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,bodyType:saved.bodyType ?? "json",headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
       {activeNav === "Collections" && <div className="collection-actions"><button onClick={exportActiveCollection} disabled={!activeCollectionId}>Export selected</button><label>Import JSON<input type="file" accept=".json,application/json" onChange={event => { void importCollectionFile(event.target.files?.[0]); event.currentTarget.value = ""; }}/></label></div>}
       {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
       {activeNav === "History" && <div className="history-panel"><div className="history-tools"><input aria-label="Search request history" placeholder="Search method or URL" value={historyFilter} onChange={event=>setHistoryFilter(event.target.value)}/><button onClick={()=>void clearRequestHistory()} disabled={!history.length}>Clear</button></div><div className="tool-subnav">{history.filter(item=>(item.method+" "+item.url+" "+(item.status ?? "")).toLowerCase().includes(historyFilter.toLowerCase())).length ? history.filter(item=>(item.method+" "+item.url+" "+(item.status ?? "")).toLowerCase().includes(historyFilter.toLowerCase())).map(item=><button key={item.id} onClick={()=>updateRequest({method:item.method,url:item.url})}><span className="saved-method">{item.method}</span>{item.status ?? "—"} · {item.url}</button>) : <button disabled>{history.length ? "No matching requests" : "No requests yet"}</button>}</div></div>}
