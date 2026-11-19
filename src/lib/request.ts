@@ -1,6 +1,6 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 export type HeaderPair = { id: string; key: string; value: string; enabled: boolean };
-export type ApiRequest = { method: HttpMethod; url: string; headers: HeaderPair[]; body: string; bodyType?: "json" | "text" | "urlencoded" };
+export type ApiRequest = { method: HttpMethod; url: string; headers: HeaderPair[]; body: string; bodyType?: "json" | "text" | "urlencoded" | "formdata" };
 export type ApiResponse = { status: number; statusText: string; duration: number; size: number; headers: Record<string, string>; body: string };
 
 function getClientId(): string {
