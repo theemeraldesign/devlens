@@ -556,6 +556,7 @@ export default function App() {
   }
 
   async function saveRequest() {
+    collectionSyncVersion.current += 1;
     const current = collections.find(item => item.id === activeCollectionId);
     const target = current ?? { id: uid(), name: "My requests", requests: [], updatedAt: new Date().toISOString() };
     const saved = { id: uid(), name: "Untitled request", method: request.method, url: redactUrl(request.url), headers: safeSavedHeaders(request.headers), body: request.body, bodyType: request.bodyType ?? "json", createdAt: new Date().toISOString() };
@@ -577,13 +578,17 @@ export default function App() {
           setCollections(localFallback);
           writeGuestCollections(localFallback.filter(item => !item.cloudOwnerId));
         } else {
-          setCollections(next.map(item => item.id === target.id ? { ...item, cloudOwnerId: accountId } : item));
+          setCollections(currentItems => currentItems.map(item => item.id === target.id
+            ? { ...item, cloudOwnerId: accountId, requests: [saved, ...item.requests.filter(row => row.id !== saved.id)] }
+            : item));
           const guestBackup = readGuestCollections();
           if (guestBackup.some(item => item.id === target.id)) writeGuestCollections(guestBackup.map(item => item.id === target.id ? cloudCollection : item));
+          setAccountNotice("Request saved to collection.");
         }
       }
     } else {
       writeGuestCollections(next.filter(item => !item.cloudOwnerId));
+      setAccountNotice("Request saved to this device.");
     }
   }
 
