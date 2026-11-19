@@ -175,11 +175,12 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   await renamedCard.getByRole("button", { name: "Duplicate", exact: true }).click();
   await expect(page.locator(".import-banner")).toContainText("Collection duplicated.", { timeout: 20_000 });
   const copyName = `${renamedName} copy`;
-  const copyCard = page.locator(`.screen-card:has(h3:text-is("${copyName}"))`);
-  await expect(copyCard).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".collection-list")).toContainText(copyName, { timeout: 15_000 });
+  const copyAction = page.getByRole("button", { name: `Delete ${copyName}`, exact: true });
+  await expect(copyAction).toBeVisible();
   page.once("dialog", dialog => dialog.accept());
-  await copyCard.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(copyCard).toHaveCount(0);
+  await copyAction.click();
+  await expect(page.locator(".collection-list")).not.toContainText(copyName);
   page.once("dialog", dialog => dialog.accept());
   await renamedCard.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(renamedCard).toHaveCount(0);
