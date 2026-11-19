@@ -123,30 +123,38 @@ export default function App() {
       ? environments.map(item => item.id === environment.id ? environment : item)
       : [environment, ...environments];
     setEnvironments(next);
-    writeGuestEnvironments(next);
     setActiveEnvironmentId(environment.id);
     writeActiveEnvironmentId(environment.id);
     setShowEnvironmentModal(false);
     setEditingEnvironment(null);
     if (supabase && accountId) {
       const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
-      if (deactivateError) { setAccountNotice(deactivateError.message); return; }
+      if (deactivateError) { setAccountNotice(deactivateError.message); writeGuestEnvironments(next.filter(item => !item.cloudOwnerId)); return; }
       const variables = Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value]));
       const { error: saveError } = await supabase.from("environments").upsert({
         id: environment.id, owner_id: accountId, guest_id: environment.id,
         name: environment.name, variables, is_active: true
       }, { onConflict: "owner_id,guest_id" });
-      if (saveError) setAccountNotice(saveError.message);
+      if (saveError) { setAccountNotice(saveError.message); writeGuestEnvironments(next.filter(item => !item.cloudOwnerId)); return; }
+      setEnvironments(next.map(item => item.id === environment.id ? { ...item, cloudOwnerId: accountId } : item));
+    } else {
+      writeGuestEnvironments(next.filter(item => !item.cloudOwnerId));
     }
   }
+
   async function deleteEnvironment(id: string) {
     const next = environments.filter(environment => environment.id !== id);
+    const target = environments.find(environment => environment.id === id);
     setEnvironments(next);
-    writeGuestEnvironments(next);
-    if (activeEnvironmentId === id) { setActiveEnvironmentId(next[0]?.id ?? null); writeActiveEnvironmentId(next[0]?.id ?? null); }
+    writeGuestEnvironments(readGuestEnvironments().filter(environment => environment.id !== id));
+    if (activeEnvironmentId === id) {
+      const nextId = next[0]?.id ?? null;
+      setActiveEnvironmentId(nextId);
+      writeActiveEnvironmentId(nextId);
+    }
     setShowEnvironmentModal(false);
     setEditingEnvironment(null);
-    if (supabase && accountId) {
+    if (supabase && accountId && target?.cloudOwnerId === accountId) {
       const { error: deleteError } = await supabase.from("environments").delete().eq("owner_id", accountId).eq("guest_id", id);
       if (deleteError) setAccountNotice(deleteError.message);
     }
@@ -155,17 +163,17 @@ export default function App() {
   async function activateEnvironment(id: string) {
     setActiveEnvironmentId(id);
     writeActiveEnvironmentId(id);
-    if (!supabase || !accountId) return;
+    const environment = environments.find(item => item.id === id);
+    if (!supabase || !accountId || !environment) return;
     const { error: deactivateError } = await supabase.from("environments").update({ is_active: false }).eq("owner_id", accountId).eq("is_active", true);
     if (deactivateError) { setAccountNotice(deactivateError.message); return; }
-    const environment = environments.find(item => item.id === id);
-    if (!environment) return;
     const variables = Object.fromEntries(environment.variables.filter(item => item.enabled && item.key.trim()).map(item => [item.key.trim(), item.value]));
     const { error: activateError } = await supabase.from("environments").upsert({
       id: environment.id, owner_id: accountId, guest_id: environment.id,
       name: environment.name, variables, is_active: true
     }, { onConflict: "owner_id,guest_id" });
     if (activateError) setAccountNotice(activateError.message);
+    else setEnvironments(items => items.map(item => item.id === id ? { ...item, cloudOwnerId: accountId } : item));
   }
 
   const prettyBody = useMemo(() => {
@@ -180,38 +188,47 @@ export default function App() {
     const collection: LocalCollection = { id: uid(), name, requests: [], updatedAt: new Date().toISOString() };
     const next = [collection, ...collections];
     setCollections(next);
-    writeGuestCollections(next);
     setActiveCollectionId(collection.id);
     setShowNew(false);
     if (supabase && accountId) {
       const { error: cloudError } = await supabase.from("collections").insert({ id: collection.id, owner_id: accountId, guest_id: collection.id, name, content: { requests: [] } });
-      if (cloudError) setAccountNotice(cloudError.message);
+      if (cloudError) { setAccountNotice(cloudError.message); writeGuestCollections(next.filter(item => !item.cloudOwnerId)); }
+      else setCollections(next.map(item => item.id === collection.id ? { ...item, cloudOwnerId: accountId } : item));
+    } else {
+      writeGuestCollections(next.filter(item => !item.cloudOwnerId));
     }
   }
-  function saveRequest() {
+
+  async function saveRequest() {
     const current = collections.find(item => item.id === activeCollectionId);
     const target = current ?? { id: uid(), name: "My requests", requests: [], updatedAt: new Date().toISOString() };
     const saved = { id: uid(), name: "Untitled request", method: request.method, url: request.url, headers: safeSavedHeaders(request.headers), body: request.body, createdAt: new Date().toISOString() };
     const next = current
       ? collections.map(item => item.id === current.id ? { ...item, requests: [saved, ...item.requests], updatedAt: new Date().toISOString() } : item)
-      : [ { ...target, requests: [saved] }, ...collections ];
+      : [{ ...target, requests: [saved] }, ...collections];
     setCollections(next);
-    writeGuestCollections(next);
     setActiveCollectionId(target.id);
     if (supabase && accountId) {
       const cloudCollection = next.find(item => item.id === target.id);
       if (cloudCollection) {
         const { error: cloudError } = await supabase.from("collections").upsert({
-          id: cloudCollection.id,
-          owner_id: accountId,
-          guest_id: cloudCollection.id,
-          name: cloudCollection.name,
-          content: { requests: cloudCollection.requests }
+          id: cloudCollection.id, owner_id: accountId, guest_id: cloudCollection.id,
+          name: cloudCollection.name, content: { requests: cloudCollection.requests }
         });
-        if (cloudError) setAccountNotice(cloudError.message);
+        if (cloudError) {
+          setAccountNotice(cloudError.message);
+          const localFallback = next.map(item => item.id === target.id ? { ...item, cloudOwnerId: undefined } : item);
+          setCollections(localFallback);
+          writeGuestCollections(localFallback.filter(item => !item.cloudOwnerId));
+        } else {
+          setCollections(next.map(item => item.id === target.id ? { ...item, cloudOwnerId: accountId } : item));
+        }
       }
+    } else {
+      writeGuestCollections(next.filter(item => !item.cloudOwnerId));
     }
   }
+
   const updateHeader = (id: string, patch: Partial<HeaderPair>) => updateRequest({ headers: request.headers.map(h => h.id === id ? { ...h, ...patch } : h) });
   async function importGuestData() {
     const guestCollections = collections.filter(item => !item.cloudOwnerId);
