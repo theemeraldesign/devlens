@@ -4,6 +4,7 @@ import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type H
 import { readGuestCollections, writeGuestCollections, type LocalCollection } from "./lib/workspace";
 import { readActiveEnvironmentId, readGuestEnvironments, resolveEnvironmentVariables, writeActiveEnvironmentId, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
 import { redactUrl, safeSavedHeaders } from "./lib/utilities";
+import { readRequestHistory, writeRequestHistory, type RequestHistoryItem } from "./lib/history";
 import { supabase } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
 import UtilityModal from "./components/UtilityModal";
@@ -37,7 +38,7 @@ export default function App() {
   const [activeEnvironmentId, setActiveEnvironmentId] = useState<string | null>(() => readActiveEnvironmentId(readGuestEnvironments()));
   const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
   const [editingEnvironment, setEditingEnvironment] = useState<LocalEnvironment | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<RequestHistoryItem[]>(() => readRequestHistory());
   const [showTools, setShowTools] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"collections" | "environments" | "history" | "utilities" | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -92,24 +93,41 @@ export default function App() {
     writeActiveEnvironmentId(nextActiveId);
   }
 
+  async function syncCloudHistory(userId: string) {
+    if (!supabase) return;
+    const { data, error: syncError } = await supabase.from("request_history")
+      .select("id,method,url,status_code,duration_ms,created_at")
+      .eq("owner_id", userId).order("created_at", { ascending: false }).limit(100);
+    if (syncError) { setAccountNotice(syncError.message); return; }
+    const cloud = (data || []).map(row => ({
+      id: row.id, method: row.method as HttpMethod, url: row.url,
+      status: row.status_code, duration: row.duration_ms,
+      createdAt: row.created_at, cloudOwnerId: userId
+    } as RequestHistoryItem));
+    const local = readRequestHistory();
+    const cloudIds = new Set(cloud.map(item => item.id));
+    setHistory([...cloud, ...local.filter(item => !cloudIds.has(item.id))].slice(0, 100));
+  }
+
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
-      if (user) { void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
+      if (user) { void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
-      if (session?.user) { void syncCloudCollections(session.user.id); void syncCloudEnvironments(session.user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
+      if (session?.user) { void syncCloudCollections(session.user.id); void syncCloudEnvironments(session.user.id); void syncCloudHistory(session.user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
       if (!session) {
         setShowImportPrompt(false);
         const guestCollections = readGuestCollections();
         const guestEnvironments = readGuestEnvironments();
         setCollections(guestCollections);
         setEnvironments(guestEnvironments);
+        setHistory(readRequestHistory());
         setActiveCollectionId(guestCollections[0]?.id ?? null);
         setCollectionName(guestCollections[0]?.name ?? "My workspace");
         const activeId = readActiveEnvironmentId(guestEnvironments);
@@ -291,7 +309,23 @@ export default function App() {
       }
       const result = await sendRequest({ ...request, headers: outgoingHeaders, url: finalUrl.toString(), body: resolve(request.body) }, controller.signal);
       setResponse(result);
-      setHistory(items => [redactUrl(request.url), ...items.filter(x => x !== redactUrl(request.url))].slice(0, 12));
+      const historyItem: RequestHistoryItem = {
+        id: uid(), method: request.method, url: redactUrl(finalUrl.toString()),
+        status: result.status, duration: result.duration, createdAt: new Date().toISOString()
+      };
+      setHistory(items => {
+        const next = [historyItem, ...items.filter(item => item.url !== historyItem.url || item.method !== historyItem.method)].slice(0, 100);
+        writeRequestHistory(next);
+        return next;
+      });
+      if (supabase && accountId) {
+        const { error: historyError } = await supabase.from("request_history").insert({
+          id: historyItem.id, owner_id: accountId, method: historyItem.method,
+          url: historyItem.url, status_code: historyItem.status, duration_ms: historyItem.duration
+        });
+        if (historyError) setAccountNotice("Request completed, but history sync failed: " + historyError.message);
+        else setHistory(items => items.map(item => item.id === historyItem.id ? { ...item, cloudOwnerId: accountId } : item));
+      }
     } catch (e) { setError(e instanceof DOMException && e.name === "AbortError" ? "Request cancelled." : e instanceof Error ? e.message : "Request failed."); }
     finally { setBusy(false); setAbortController(null); }
   }
@@ -306,7 +340,7 @@ export default function App() {
       </nav>
       {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
       {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
-      {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map((url,index)=><button key={url+index} onClick={()=>updateRequest({url})}>{url}</button>) : <button disabled>No requests yet</button>}</div>}
+      {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map(item=><button key={item.id} onClick={()=>updateRequest({method:item.method,url:item.url})}><span className="saved-method">{item.method}</span>{item.status ?? "—"} · {item.url}</button>) : <button disabled>No requests yet</button>}</div>}
       <div className="side-divider"/>
       <div className="side-label">DEVELOPER TOOLS</div>
       <nav className="side-nav">
@@ -352,7 +386,7 @@ export default function App() {
       <div className="mobile-panel-head"><b>{mobilePanel==="collections"?"Collections":mobilePanel==="environments"?"Environments":mobilePanel==="history"?"Request history":"Developer utilities"}</b><button onClick={()=>setMobilePanel(null)} aria-label="Close panel"><X size={16}/></button></div>
       {mobilePanel==="collections" && <><button className="mobile-panel-action" onClick={()=>{setShowNew(true);setMobilePanel(null);}}><Plus size={14}/> New collection</button>{collections.length ? collections.map(collection=><div className="mobile-panel-group" key={collection.id}><button className={activeCollectionId===collection.id?"mobile-panel-item active":"mobile-panel-item"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={14}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="mobile-saved-request" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);setMobilePanel(null);}}><span>{saved.method}</span>{saved.name}</button>)}</div>) : <p className="mobile-panel-empty">No collections yet. Create one to save requests.</p>}</>}
       {mobilePanel==="environments" && <><button className="mobile-panel-action" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);setMobilePanel(null);}}><Plus size={14}/> New environment</button>{environments.length ? environments.map(environment=><div className="mobile-panel-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"mobile-panel-item active":"mobile-panel-item"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={14}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="mobile-saved-request" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);setMobilePanel(null);}}>Edit variables</button></div>) : <p className="mobile-panel-empty">No environments yet. Add one to use variables.</p>}</>}
-      {mobilePanel==="history" && <>{history.length ? history.map((url,index)=><button className="mobile-panel-item" key={url+index} onClick={()=>{updateRequest({url});setMobilePanel(null);}}><Clock3 size={14}/><span>{url}</span></button>) : <p className="mobile-panel-empty">Your recent requests will appear here.</p>}</>}
+      {mobilePanel==="history" && <>{history.length ? history.map(item=><button className="mobile-panel-item" key={item.id} onClick={()=>{updateRequest({method:item.method,url:item.url});setMobilePanel(null);}}><Clock3 size={14}/><span>{item.method} · {item.status ?? "—"} · {item.url}</span></button>) : <p className="mobile-panel-empty">Your recent requests will appear here.</p>}</>}
       {mobilePanel==="utilities" && <div className="mobile-utility-grid">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL exporter"].map(tool=><button key={tool} onClick={()=>{setActiveUtility(tool);setMobilePanel(null);}}>{tool}</button>)}</div>}
     </div>}
     <nav className="mobile-nav" aria-label="Workspace navigation">
