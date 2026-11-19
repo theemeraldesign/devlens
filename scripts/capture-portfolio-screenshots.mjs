@@ -64,6 +64,15 @@ try {
   await collection.waitFor({ state: "visible" });
   await screenshot("collections-desktop");
 
+  await page.getByRole("button", { name: "DevLens home" }).click();
+  const previouslyPublished = page.getByRole("button", { name: "Unpublish DevLens Demo API" });
+  if (await previouslyPublished.count()) {
+    page.once("dialog", dialog => dialog.accept());
+    await previouslyPublished.click();
+  }
+  await page.getByRole("button", { name: "Collections" }).first().click();
+  collection = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) }).last();
+
   const publishResponse = page.waitForResponse(response => {
     if (!response.url().includes("/functions/v1/publish-collection")) return false;
     try { return JSON.parse(response.request().postData() || "{}").action === "publish"; } catch { return false; }
