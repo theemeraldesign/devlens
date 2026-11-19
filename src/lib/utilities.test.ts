@@ -50,4 +50,23 @@ describe("public snapshot data minimization", () => {
       email: "private@example.com"
     })).toEqual({ title: "Example" });
   });
+  it("redacts sensitive query values and sanitizes JSON request bodies before public sharing", () => {
+    expect(safePublicCollection({
+      requests: [{
+        url: "https://api.example.com/items?api_key=private&page=2",
+        body: JSON.stringify({ name: "Public example", password: "private", nested: { access_token: "secret", ok: true } })
+      }]
+    })).toEqual({
+      requests: [{
+        url: "https://api.example.com/items?api_key=%5BREDACTED%5D&page=2",
+        body: JSON.stringify({ name: "Public example", nested: { ok: true } })
+      }]
+    });
+  });
+
+  it("omits non-JSON request bodies from public snapshots", () => {
+    expect(safePublicCollection({ requests: [{ body: "password=hunter2&token=private" }] }))
+      .toEqual({ requests: [{ body: "" }] });
+  });
+
 });
