@@ -568,21 +568,26 @@ export default function App() {
     if (supabase && accountId) {
       const cloudCollection = next.find(item => item.id === target.id);
       if (cloudCollection) {
-        const { error: cloudError } = await supabase.from("collections").upsert({
+        const { data: persisted, error: cloudError } = await supabase.from("collections").upsert({
           id: cloudCollection.id, owner_id: accountId, guest_id: cloudCollection.id,
-          name: cloudCollection.name, content: { requests: cloudCollection.requests }
-        });
-        if (cloudError) {
-          setAccountNotice(cloudError.message);
+          name: cloudCollection.name, content: { requests: cloudCollection.requests },
+          updated_at: new Date().toISOString()
+        }, { onConflict: "id" }).select("id,content").single();
+        const persistedRequests = persisted?.content && typeof persisted.content === "object"
+          ? (persisted.content as { requests?: SavedRequest[] }).requests
+          : undefined;
+        if (cloudError || !Array.isArray(persistedRequests) || !persistedRequests.some(item => item.id === saved.id)) {
+          const message = cloudError?.message || "The request was not confirmed in cloud storage. Please retry.";
+          setAccountNotice(message);
           const localFallback = next.map(item => item.id === target.id ? { ...item, cloudOwnerId: undefined } : item);
           setCollections(localFallback);
           writeGuestCollections(localFallback.filter(item => !item.cloudOwnerId));
         } else {
           setCollections(currentItems => currentItems.map(item => item.id === target.id
-            ? { ...item, cloudOwnerId: accountId, requests: [saved, ...item.requests.filter(row => row.id !== saved.id)] }
+            ? { ...item, cloudOwnerId: accountId, requests: persistedRequests }
             : item));
           const guestBackup = readGuestCollections();
-          if (guestBackup.some(item => item.id === target.id)) writeGuestCollections(guestBackup.map(item => item.id === target.id ? cloudCollection : item));
+          if (guestBackup.some(item => item.id === target.id)) writeGuestCollections(guestBackup.map(item => item.id === target.id ? { ...cloudCollection, requests: persistedRequests } : item));
           setAccountNotice("Request saved to collection.");
         }
       }
