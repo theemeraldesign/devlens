@@ -45,7 +45,8 @@ function ipv6InCidr(address: bigint, network: bigint, prefix: number): boolean {
 }
 
 export function isPrivateAddress(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\\[|\\]$/g, "").split("%")[0];
+  const trimmedHost = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
+  const h = trimmedHost.toLowerCase().split("%")[0];
   if (PRIVATE_HOSTS.test(h)) return true;
 
   if (h.includes(":")) {
@@ -62,7 +63,7 @@ export function isPrivateAddress(host: string): boolean {
     return false;
   }
 
-  if (/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)) {
+  if (/^[0-9]{1,3}([.][0-9]{1,3}){3}$/.test(h)) {
     const [a,b,c] = h.split(".").map(Number);
     if ([a,b,c].some(n => n < 0 || n > 255)) return true;
     if (a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) ||
