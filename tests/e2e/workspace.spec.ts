@@ -68,6 +68,15 @@ test("landing motion respects reduced-motion preferences", async ({ page }) => {
   expect(parseFloat(duration)).toBeLessThan(0.001);
 });
 
+test("landing page exposes a keyboard skip link", async ({ page }) => {
+  await page.goto("/");
+  const link = page.getByRole("link", { name: "Skip to content" });
+  await link.focus();
+  await expect(link).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#landing-main")).toBeFocused();
+});
+
 test("modal traps keyboard focus and restores it on close", async ({ page }) => {
   await page.goto("/");
   const trigger = page.locator(".landing-header-cta");
