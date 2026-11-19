@@ -3,7 +3,7 @@ import { validateEnvelope, verifySignature } from "./security.mjs";
 
 export const config = { api: { bodyParser: false } };
 
-const MAX_REQUEST_BYTES = 1_048_576;
+const MAX_REQUEST_BYTES = 2_097_152;
 const MAX_RESPONSE_BYTES = 5_242_880;
 const TIMEOUT_MS = 20_000;
 
@@ -95,11 +95,14 @@ export default async function handler(req, res) {
     }
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const upstream = await guardedFetch(input.url, {
       method: input.method,
       headers,
       body,
+      signal: controller.signal,
       timeoutMs: TIMEOUT_MS,
       followRedirects: false,
       opaqueErrors: true
@@ -116,6 +119,8 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     if (error?.message === "RESPONSE_TOO_LARGE") return send(res, 413, { error: "Response exceeded the 5 MB inspection limit." });
-    return send(res, error?.code === "timeout" ? 504 : 502, { error: "The upstream request failed or the destination was blocked." });
+    return send(res, error?.code === "timeout" || error?.name === "AbortError" ? 504 : 502, { error: "The upstream request failed or the destination was blocked." });
+  } finally {
+    clearTimeout(timeout);
   }
 }
