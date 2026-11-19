@@ -57,7 +57,7 @@ test("password recovery is available from sign in", async ({ page }) => {
   await page.locator(".landing-signin").click();
   await page.getByRole("button", { name: "Forgot your password?" }).click();
   await expect(page.getByRole("dialog")).toContainText("Reset your password");
-  await expect(page.getByRole("button", { name: "Send reset link" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send reset email" })).toBeVisible();
 });
 
 test("landing motion respects reduced-motion preferences", async ({ page }) => {
@@ -421,7 +421,7 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   const importedCard = sharedPage.locator(".screen-card").filter({ has: sharedPage.getByRole("heading", { name: importedName, exact: true }) });
   await expect(importedCard).toBeVisible();
 
-  await page.getByRole("button", { name: "DevLens home" }).click();
+  await page.getByRole("link", { name: "DevLens home" }).click();
   const unpublish = page.getByRole("button", { name: "Unpublish " + name });
   await expect(unpublish).toBeVisible();
   let forceUnauthorizedUnpublish = true;
