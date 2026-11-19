@@ -10,6 +10,7 @@ export type LocalEnvironment = {
   name: string;
   variables: EnvironmentVariable[];
   updatedAt: string;
+  cloudOwnerId?: string;
 };
 
 const STORAGE_KEY = "devlens.environments.v1";
