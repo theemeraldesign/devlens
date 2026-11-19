@@ -181,8 +181,8 @@ test("imports and exports a DevLens collection", async ({ page }) => {
   await importedCard.getByRole("button", { name: "Export", exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain(importedName.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
-  page.once("dialog", dialog => dialog.accept());
   await importedCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(importedCard).toHaveCount(0);
 });
 
@@ -192,7 +192,7 @@ test("imports a cURL command into the request editor", async ({ page }) => {
   await page.locator(".utility-input").fill("curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{\"name\":\"DevLens\"}'");
   await page.getByRole("button", { name: /run utility/i }).click();
   await page.getByRole("button", { name: "Load into request editor" }).click();
-  await expect(page.getByLabel("HTTP method")).toHaveValue("POST");
+  await expect(page.getByLabel("HTTP method")).toHaveText("POST");
   await expect(page.getByLabel("Request URL")).toHaveValue("https://api.example.com/items");
   await page.getByRole("button", { name: "Body" }).click();
   await expect(page.getByLabel("Request body")).toHaveValue('{"name":"DevLens"}');
@@ -204,8 +204,9 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   await page.getByRole("button", { name: "New collection" }).first().click();
   await page.getByPlaceholder("Collection name").fill(`Portfolio API ${Date.now()}`);
   await page.getByRole("button", { name: "Create collection" }).click();
-  page.once("dialog", dialog => dialog.accept(renamedName));
   await page.getByRole("button", { name: "Rename", exact: true }).first().click();
+  await page.locator(".feedback-dialog input").fill(renamedName);
+  await page.getByRole("dialog").getByRole("button", { name: "Save name" }).click();
   const renamedCard = page.locator(`.screen-card:has(h3:text-is("${renamedName}"))`);
   await expect(renamedCard).toBeVisible();
   await renamedCard.getByRole("button", { name: "Duplicate", exact: true }).click();
@@ -214,18 +215,19 @@ test("renames, duplicates and deletes a collection", async ({ page }) => {
   await expect(page.locator(".collection-list")).toContainText(copyName, { timeout: 15_000 });
   const copyAction = page.getByRole("button", { name: `Delete ${copyName}`, exact: true });
   await expect(copyAction).toBeVisible();
-  page.once("dialog", dialog => dialog.accept());
   await copyAction.click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.locator(".collection-list")).not.toContainText(copyName);
-  page.once("dialog", dialog => dialog.accept());
   await renamedCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(renamedCard).toHaveCount(0);
 });
 
 test("edits multipart form-data fields in the request builder", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Body" }).click();
-  await page.locator("#body-type").selectOption("formdata");
+  await page.locator("#body-type").click();
+  await page.getByRole("option", { name: "Form data" }).click();
   await page.getByRole("button", { name: "Add field" }).click();
   await page.getByLabel("Form data key 1").fill("name");
   await page.getByLabel("Form data value 1").fill("DevLens");
@@ -435,22 +437,21 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
     }
     await route.continue();
   });
-  page.once("dialog", dialog => dialog.accept());
   await unpublish.click();
+  await page.getByRole("dialog").getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(page.locator(".import-banner")).toContainText("no longer public");
   expect(forceUnauthorizedUnpublish).toBe(false);
   await sharedPage.goto(shareUrl!);
   await expect(sharedPage.locator(".shared-error")).toContainText("does not exist or is no longer public");
 
-  page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Collections" }).first().click();
   const cleanupOriginal = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name, exact: true }) });
-  if (await cleanupOriginal.count()) await cleanupOriginal.getByRole("button", { name: "Delete", exact: true }).click();
+  if (await cleanupOriginal.count()) { await cleanupOriginal.getByRole("button", { name: "Delete", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click(); }
   await sharedPage.goto("/collections");
   const cleanupImported = sharedPage.locator(".screen-card").filter({ has: sharedPage.getByRole("heading", { name: importedName, exact: true }) });
   if (await cleanupImported.count()) {
-    sharedPage.once("dialog", dialog => dialog.accept());
     await cleanupImported.getByRole("button", { name: "Delete", exact: true }).click();
+    await sharedPage.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   }
   await sharedPage.close();
 });
