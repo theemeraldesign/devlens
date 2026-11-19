@@ -75,6 +75,7 @@ try {
   await shared.close();
 
   await page.goto(baseURL + "/environments", { waitUntil: "networkidle" });
+  await maskAccount(page);
   await page.getByRole("button", { name: "New environment" }).first().click();
   await page.getByPlaceholder("Development").fill("Demo environment");
   await page.getByPlaceholder("API_BASE_URL").fill("API_BASE_URL");
@@ -84,10 +85,12 @@ try {
   await screenshot("environments-desktop");
 
   await page.goto(baseURL + "/history", { waitUntil: "networkidle" });
+  await maskAccount(page);
   await page.getByRole("heading", { name: "Request history", exact: true }).waitFor();
   await screenshot("history-desktop");
 
   await page.goto(baseURL + "/tools", { waitUntil: "networkidle" });
+  await maskAccount(page);
   await page.getByRole("button", { name: "JSON formatter" }).click();
   await page.locator(".utility-input").fill('{"project":"DevLens","status":"live","secure":true}');
   await page.getByRole("button", { name: /run utility/i }).click();
