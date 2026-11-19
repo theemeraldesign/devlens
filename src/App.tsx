@@ -299,7 +299,7 @@ export default function App() {
   return <div className={dark ? "app dark" : "app light"}>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Activity size={18} strokeWidth={2.4}/></div><span>dev<span className="brand-accent">lens</span></span><span className="beta">BETA</span></div>
-      <div className="workspace-switch"><div className="workspace-avatar">M</div><span><b>{collectionName}</b><small>Personal workspace</small></span><ChevronDown size={15}/></div>
+      <div className="workspace-switch"><div className="workspace-avatar">{collectionName.slice(0,1).toUpperCase() || "D"}</div><span><b>{collectionName}</b><small>{accountEmail ? "Synced account workspace" : "Local guest workspace"}</small></span></div>
       <div className="side-label">WORKSPACE</div>
       <nav className="side-nav" aria-label="Primary workspace navigation">
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
