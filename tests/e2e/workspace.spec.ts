@@ -92,6 +92,13 @@ test("modal traps keyboard focus and restores it on close", async ({ page }) => 
   await expect(trigger).toBeFocused();
 });
 
+test("password recovery link opens the password update form", async ({ page }) => {
+  await page.goto("/?password-reset=1");
+  await expect(page.getByRole("dialog")).toContainText("Choose a new password");
+  await expect(page.getByLabel("New password")).toBeVisible();
+  await expect(page.getByLabel("Confirm new password")).toBeVisible();
+});
+
 test.describe("authenticated workspace", () => {
   test.skip(!process.env.DEVLENS_E2E_EMAIL || !process.env.DEVLENS_E2E_PASSWORD, "Set DEVLENS_E2E_EMAIL and DEVLENS_E2E_PASSWORD to run account-backed workspace tests.");
   test.beforeEach(async ({ page }) => {
@@ -274,6 +281,12 @@ test("sends a request through the authenticated secure egress gateway", async ({
 });
 
 
+test("sign out returns the user to the public landing page", async ({ page }) => {
+  await page.getByRole("button", { name: "Open main menu" }).click();
+  await page.getByRole("button", { name: /Sign out/ }).click();
+  await expect(page.getByRole("heading", { name: /Make every API make sense/ })).toBeVisible();
+});
+
 test("keyboard users can skip directly to the workspace", async ({ page }) => {
   const link = page.getByRole("link", { name: "Skip to workspace" });
   await expect(link).toBeAttached();
@@ -317,6 +330,9 @@ test("response inspector supports pretty, raw, headers and JSON download", async
   await page.getByRole("button", { name: "Save" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("devlens-response.json");
+  await page.getByRole("button", { name: "History" }).click();
+  await expect(page.locator(".history-table")).toContainText(url);
+  await page.reload();
   await page.getByRole("button", { name: "History" }).click();
   await expect(page.locator(".history-table")).toContainText(url);
 });
