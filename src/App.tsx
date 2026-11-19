@@ -11,6 +11,7 @@ import UtilityModal from "./components/UtilityModal";
 import EnvironmentModal from "./components/EnvironmentModal";
 import CollectionModal from "./components/CollectionModal";
 import SharedCollectionPage from "./components/SharedCollectionPage";
+import LandingPage from "./components/LandingPage";
 
 const uid = () => crypto.randomUUID();
 const starterHeaders: HeaderPair[] = [{ id: uid(), key: "Accept", value: "application/json", enabled: true }];
@@ -70,6 +71,7 @@ export default function App() {
   const [activeUtility, setActiveUtility] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [showImportPrompt, setShowImportPrompt] = useState(false);
   const [accountNotice, setAccountNotice] = useState("");
   const [params, setParams] = useState([{ id: uid(), key: "", value: "", enabled: true }]);
@@ -144,16 +146,20 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) { setAuthReady(true); return; }
+    let alive = true;
     supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
+      setAuthReady(true);
       if (user) { void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && hasUnimportedGuestData(user.id, collections, environments)) setShowImportPrompt(true); }
-    });
+    }).catch(() => { if (alive) setAuthReady(true); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
+      setAuthReady(true);
       if (session?.user) { void syncCloudCollections(session.user.id); void syncCloudEnvironments(session.user.id); void syncCloudHistory(session.user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && hasUnimportedGuestData(session.user.id, collections, environments)) setShowImportPrompt(true); }
       if (!session) {
         setShowImportPrompt(false);
@@ -168,7 +174,7 @@ export default function App() {
         setActiveEnvironmentId(activeId);
       }
     });
-    return () => subscription.unsubscribe();
+    return () => { alive = false; subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -628,7 +634,9 @@ export default function App() {
   }
 
   const shareSlug = window.location.pathname.match(/^\/share\/([a-zA-Z0-9_-]{8,80})$/)?.[1] ?? null;
-  if (shareSlug) return <SharedCollectionPage slug={shareSlug} onImport={(name, rows) => void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>)} />;
+  if (shareSlug) return <SharedCollectionPage slug={shareSlug} onImport={(name, rows) => { if (!accountId) { setShowAuth(true); return; } void importSharedCollection(name, rows as unknown as Array<Record<string, unknown>>); }} />;
+  if (!authReady) return <div className="auth-loading" role="status">Preparing your workspace...</div>;
+  if (!accountId) return <><LandingPage onGetStarted={() => setShowAuth(true)} onSignIn={() => setShowAuth(true)}/>{showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); void syncCloudHistory(user.id); }} />}</>;
 
   return <div className={dark ? "app dark app-enter" : "app light app-enter"}>
     <aside className="sidebar">
