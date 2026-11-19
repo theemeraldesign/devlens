@@ -60,13 +60,12 @@ export default function App() {
     if (syncError) { setAccountNotice(syncError.message); return; }
     const cloud = (data || []).map(row => {
       const content = row.content as { requests?: LocalCollection["requests"] } | null;
-      return { id: row.id, name: row.name, requests: Array.isArray(content?.requests) ? content.requests : [], updatedAt: row.updated_at } as LocalCollection;
+      return { id: row.id, name: row.name, requests: Array.isArray(content?.requests) ? content.requests : [], updatedAt: row.updated_at, cloudOwnerId: userId } as LocalCollection;
     });
     const local = readGuestCollections();
     const cloudIds = new Set(cloud.map(item => item.id));
     const merged = [...cloud, ...local.filter(item => !cloudIds.has(item.id))];
     setCollections(merged);
-    writeGuestCollections(merged);
     if (!activeCollectionId && merged.length) {
       setActiveCollectionId(merged[0].id);
       setCollectionName(merged[0].name);
@@ -79,13 +78,12 @@ export default function App() {
     if (syncError) { setAccountNotice(syncError.message); return; }
     const cloud = (data || []).map(row => {
       const variables = row.variables && typeof row.variables === "object" ? Object.entries(row.variables as Record<string,string>).map(([key,value]) => ({ id: uid(), key, value: String(value), enabled: true })) : [];
-      return { id: row.guest_id || row.id, name: row.name, variables, updatedAt: row.updated_at } as LocalEnvironment;
+      return { id: row.guest_id || row.id, name: row.name, variables, updatedAt: row.updated_at, cloudOwnerId: userId } as LocalEnvironment;
     });
     const local = readGuestEnvironments();
     const cloudIds = new Set(cloud.map(item => item.id));
     const merged = [...cloud, ...local.filter(item => !cloudIds.has(item.id))];
     setEnvironments(merged);
-    writeGuestEnvironments(merged);
     const active = data?.find(row => row.is_active);
     const nextActiveId = active ? (active.guest_id || active.id) : readActiveEnvironmentId(merged);
     setActiveEnvironmentId(nextActiveId);
@@ -98,13 +96,23 @@ export default function App() {
       const user = data.session?.user;
       setAccountEmail(user?.email ?? null);
       setAccountId(user?.id ?? null);
-      if (user) { void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); if ((collections.length || environments.length) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
+      if (user) { void syncCloudCollections(user.id); void syncCloudEnvironments(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAccountEmail(session?.user.email ?? null);
       setAccountId(session?.user.id ?? null);
-      if (session?.user) { void syncCloudCollections(session.user.id); void syncCloudEnvironments(session.user.id); if ((collections.length || environments.length) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
-      if (!session) setShowImportPrompt(false);
+      if (session?.user) { void syncCloudCollections(session.user.id); void syncCloudEnvironments(session.user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(session.user.id)) setShowImportPrompt(true); }
+      if (!session) {
+        setShowImportPrompt(false);
+        const guestCollections = readGuestCollections();
+        const guestEnvironments = readGuestEnvironments();
+        setCollections(guestCollections);
+        setEnvironments(guestEnvironments);
+        setActiveCollectionId(guestCollections[0]?.id ?? null);
+        setCollectionName(guestCollections[0]?.name ?? "My workspace");
+        const activeId = readActiveEnvironmentId(guestEnvironments);
+        setActiveEnvironmentId(activeId);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -206,15 +214,17 @@ export default function App() {
   }
   const updateHeader = (id: string, patch: Partial<HeaderPair>) => updateRequest({ headers: request.headers.map(h => h.id === id ? { ...h, ...patch } : h) });
   async function importGuestData() {
-    if (!supabase || !accountId || (!collections.length && !environments.length)) return;
+    const guestCollections = collections.filter(item => !item.cloudOwnerId);
+    const guestEnvironments = environments.filter(item => !item.cloudOwnerId);
+    if (!supabase || !accountId || (!guestCollections.length && !guestEnvironments.length)) return;
     setAccountNotice("");
-    if (collections.length) {
-      const rows = collections.map(({ id, name, requests }) => ({ id, owner_id: accountId, guest_id: id, name, content: { requests } }));
+    if (guestCollections.length) {
+      const rows = guestCollections.map(({ id, name, requests }) => ({ id, owner_id: accountId, guest_id: id, name, content: { requests } }));
       const { error: importError } = await supabase.from("collections").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
       if (importError) { setAccountNotice(importError.message); return; }
     }
-    if (environments.length) {
-      const rows = environments.map(environment => ({
+    if (guestEnvironments.length) {
+      const rows = guestEnvironments.map(environment => ({
         id: environment.id,
         owner_id: accountId,
         guest_id: environment.id,
@@ -225,6 +235,8 @@ export default function App() {
       const { error: importError } = await supabase.from("environments").upsert(rows, { onConflict: "owner_id,guest_id", ignoreDuplicates: true });
       if (importError) { setAccountNotice(importError.message); return; }
     }
+    setCollections(items => items.map(item => guestCollections.some(guest => guest.id === item.id) ? { ...item, cloudOwnerId: accountId } : item));
+    setEnvironments(items => items.map(item => guestEnvironments.some(guest => guest.id === item.id) ? { ...item, cloudOwnerId: accountId } : item));
     try { localStorage.setItem(guestImportKey(accountId), "1"); } catch { /* Local copies remain safe if storage is unavailable. */ }
     setShowImportPrompt(false);
     setAccountNotice("Guest collections and environments imported. Your local copies remain on this device.");
