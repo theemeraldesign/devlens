@@ -322,6 +322,7 @@ test("response inspector supports pretty, raw, headers and JSON download", async
   await page.getByLabel("Request URL").fill(url);
   await page.locator(".url-row .send-button").click();
   await expect(page.locator(".response-code")).toContainText('"ok": true');
+  await expect(page.locator(".url-row .send-button")).toContainText("Send");
   await page.getByRole("button", { name: "Raw", exact: true }).click();
   await expect(page.locator(".response-code")).toHaveText('{"ok":true,"count":2}');
   await page.getByRole("button", { name: "Headers", exact: true }).click();
