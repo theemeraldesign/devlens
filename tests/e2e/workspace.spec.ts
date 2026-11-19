@@ -68,6 +68,21 @@ test("landing motion respects reduced-motion preferences", async ({ page }) => {
   expect(parseFloat(duration)).toBeLessThan(0.001);
 });
 
+test("modal traps keyboard focus and restores it on close", async ({ page }) => {
+  await page.goto("/");
+  const trigger = page.locator(".landing-header-cta");
+  await trigger.click();
+  const dialog = page.getByRole("dialog");
+  const close = dialog.getByRole("button", { name: "Close" });
+  await expect(close).toBeFocused();
+  const lastAction = dialog.getByRole("button", { name: /New to DevLens/ });
+  await lastAction.focus();
+  await page.keyboard.press("Tab");
+  await expect(close).toBeFocused();
+  await close.click();
+  await expect(trigger).toBeFocused();
+});
+
 test.describe("authenticated workspace", () => {
   test.skip(!process.env.DEVLENS_E2E_EMAIL || !process.env.DEVLENS_E2E_PASSWORD, "Set DEVLENS_E2E_EMAIL and DEVLENS_E2E_PASSWORD to run account-backed workspace tests.");
   test.beforeEach(async ({ page }) => {
@@ -249,21 +264,6 @@ test("sends a request through the authenticated secure egress gateway", async ({
   await expect(page.locator(".response-head")).toContainText("Latest request result");
 });
 
-
-test("modal traps keyboard focus and restores it on close", async ({ page }) => {
-  await page.goto("/");
-  const trigger = page.locator(".landing-header-cta");
-  await trigger.click();
-  const dialog = page.getByRole("dialog");
-  const close = dialog.getByRole("button", { name: "Close" });
-  await expect(close).toBeFocused();
-  const lastAction = dialog.getByRole("button", { name: /New to DevLens/ });
-  await lastAction.focus();
-  await page.keyboard.press("Tab");
-  await expect(close).toBeFocused();
-  await close.click();
-  await expect(trigger).toBeFocused();
-});
 
 test("keyboard users can skip directly to the workspace", async ({ page }) => {
   const link = page.getByRole("link", { name: "Skip to workspace" });
