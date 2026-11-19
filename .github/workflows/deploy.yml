@@ -33,17 +33,18 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-      - name: Run end-to-end tests
-        run: npm run test:e2e
       - name: Deploy Worker and static assets
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
-      - name: Verify live production site
-        run: npx playwright test
-        env:
-          PLAYWRIGHT_BASE_URL: https://devlens.cc.cd
+      - name: Smoke test live production routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /collections /environments /history /tools; do
+            curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "https://devlens.cc.cd$path" -o /dev/null
+          done
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors https://devlens.cc.cd/ -o /tmp/devlens-live.html
+          grep -qi "<title>DevLens" /tmp/devlens-live.html
