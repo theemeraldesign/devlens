@@ -2,14 +2,14 @@ import { expect, test } from "@playwright/test";
 
 test("opens the request studio and creates a local collection", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /request studio/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Request studio." })).toBeVisible();
   await expect(page.getByLabel("Request URL")).toHaveValue("https://jsonplaceholder.typicode.com/posts/1");
-  await page.getByRole("button", { name: "Open main menu" }).click();
-  await page.getByRole("button", { name: "Open main menu" }).click();
-  await page.getByRole("button", { name: /new collection/i }).click();
+  await page.getByRole("button", { name: "Collections" }).last().click();
+  await expect(page).toHaveURL(/\\/collections$/);
+  await page.getByRole("button", { name: "New collection" }).first().click();
   await page.getByPlaceholder("Collection name").fill("Portfolio API");
   await page.getByRole("button", { name: "Create collection" }).click();
-  await expect(page.locator(".workspace-switch")).toContainText("Portfolio API");
+  await expect(page.locator(".screen-card-grid")).toContainText("Portfolio API");
 });
 
 test("switches between dark and light themes", async ({ page }) => {
@@ -18,6 +18,7 @@ test("switches between dark and light themes", async ({ page }) => {
   await page.getByTitle("Toggle theme").click();
   await expect(page.locator(".app")).toHaveClass(/light/);
 });
+
 test("opens the JSON formatter utility", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Tools" }).click();
@@ -31,12 +32,12 @@ test("creates a private environment from mobile navigation", async ({ page }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Environments" }).click();
-  await page.getByRole("button", { name: /new environment/i }).click();
+  await page.getByRole("button", { name: "New environment" }).first().click();
   await page.getByPlaceholder("Development").fill("Staging");
   await page.getByPlaceholder("API_BASE_URL").fill("BASE_URL");
   await page.getByPlaceholder("Variable value").fill("https://staging.example.test");
   await page.getByRole("button", { name: "Save environment" }).click();
-  await expect(page.locator(".heading-meta")).toContainText("Staging");
+  await expect(page.locator(".screen-card-grid")).toContainText("Staging");
 });
 
 test("imports and exports a DevLens collection", async ({ page }) => {
@@ -65,12 +66,11 @@ test("imports and exports a DevLens collection", async ({ page }) => {
   expect(download.suggestedFilename()).toContain("imported-api");
 });
 
-
 test("imports a cURL command into the request editor", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Utilities" }).click();
+  await page.getByRole("button", { name: "Tools" }).click();
   await page.getByRole("button", { name: "cURL importer" }).click();
-  await page.locator(".utility-input").fill("curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{\"name\":\"DevLens\"}'");
+  await page.locator(".utility-input").fill("curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{\\"name\\":\\"DevLens\\"}'");
   await page.getByRole("button", { name: /run utility/i }).click();
   await page.getByRole("button", { name: "Load into request editor" }).click();
   await expect(page.getByLabel("HTTP method")).toHaveValue("POST");
@@ -80,18 +80,20 @@ test("imports a cURL command into the request editor", async ({ page }) => {
 });
 
 test("renames, duplicates and deletes a collection", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: /new collection/i }).click();
+  await page.goto("/collections");
+  await page.getByRole("button", { name: "New collection" }).first().click();
   await page.getByPlaceholder("Collection name").fill("Portfolio API");
   await page.getByRole("button", { name: "Create collection" }).click();
   page.once("dialog", dialog => dialog.accept("Renamed API"));
-  await page.getByRole("button", { name: "Rename Portfolio API" }).click();
-  await expect(page.locator(".collection-list")).toContainText("Renamed API");
-  await page.getByRole("button", { name: "Duplicate Renamed API" }).click();
-  await expect(page.locator(".collection-list")).toContainText("Renamed API copy");
+  await page.getByRole("button", { name: "Rename", exact: true }).first().click();
+  await expect(page.locator(".screen-card-grid")).toContainText("Renamed API");
+  const renamedCard = page.locator(".screen-card").filter({ hasText: "Renamed API" });
+  await renamedCard.getByRole("button", { name: "Duplicate" }).click();
+  await expect(page.locator(".screen-card-grid")).toContainText("Renamed API copy");
   page.once("dialog", dialog => dialog.accept());
-  await page.getByRole("button", { name: "Delete Renamed API copy" }).click();
-  await expect(page.locator(".collection-list")).not.toContainText("Renamed API copy");
+  const copyCard = page.locator(".screen-card").filter({ hasText: "Renamed API copy" });
+  await copyCard.getByRole("button", { name: "Delete" }).click();
+  await expect(page.locator(".screen-card-grid")).not.toContainText("Renamed API copy");
 });
 
 test("edits multipart form-data fields in the request builder", async ({ page }) => {
@@ -116,18 +118,18 @@ test("uses separate responsive screens and a visible brand on Android", async ({
   await expect(page.locator(".top-brand")).toBeVisible();
   await expect(page.getByLabel("Request URL")).toBeVisible();
   await expect(page.getByRole("button", { name: "Workspace" })).toBeVisible();
-  await page.getByRole("button", { name: "Collections" }).click();
-  await expect(page).toHaveURL(/\/collections$/);
-  await expect(page.getByRole("heading", { name: "Request collections" })).toBeVisible();
+  await page.getByRole("button", { name: "Collections" }).last().click();
+  await expect(page).toHaveURL(/\\/collections$/);
+  await expect(page.getByRole("heading", { name: "Request collections", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Environments" }).click();
-  await expect(page).toHaveURL(/\/environments$/);
-  await expect(page.getByRole("heading", { name: "Environments" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /new environment/i })).toBeVisible();
+  await expect(page).toHaveURL(/\\/environments$/);
+  await expect(page.getByRole("heading", { name: "Environments", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New environment" }).first()).toBeVisible();
   await page.getByRole("button", { name: "History" }).click();
-  await expect(page).toHaveURL(/\/history$/);
-  await expect(page.getByRole("heading", { name: "Request history" })).toBeVisible();
+  await expect(page).toHaveURL(/\\/history$/);
+  await expect(page.getByRole("heading", { name: "Request history", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Tools" }).click();
-  await expect(page).toHaveURL(/\/tools$/);
+  await expect(page).toHaveURL(/\\/tools$/);
   await expect(page.getByRole("button", { name: "JSON formatter" })).toBeVisible();
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, page: document.documentElement.scrollWidth }));
   expect(widths.page).toBeLessThanOrEqual(widths.viewport);
