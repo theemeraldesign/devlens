@@ -5,6 +5,10 @@ interface Env {
   REQUEST_TIMEOUT_MS: string;
   API_RATE_LIMITER: RateLimit;
   PROXY_EGRESS_ENABLED: string;
+  SUPABASE_URL: string;
+  SUPABASE_PUBLISHABLE_KEY: string;
+  EGRESS_GATEWAY_URL: string;
+  EGRESS_SHARED_SECRET: string;
 }
 
 type ProxyInput = {
@@ -161,7 +165,7 @@ async function readLimitedBody(request: Request, limit: number): Promise<string>
 async function proxy(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get("cf-connecting-ip") || "local";
   // The client ID is user-controlled. Rate-limit by the platform-provided client IP so callers cannot rotate IDs to evade limits.
-  const allowance = await env.API_RATE_LIMITER.limit({ key: ip });
+  const allowance = await env.API_RATE_LIMITER.limit({ key: "ip:" + ip });
   if (!allowance.success) return json({ error: "Request limit reached. Wait one minute and try again." }, 429);
 
   const requestLimit = Number(env.MAX_REQUEST_BYTES || 1048576);
@@ -188,13 +192,24 @@ async function proxy(request: Request, env: Env): Promise<Response> {
     const rawUrl = String(input.url || "");
     if (rawUrl.length > 4096) return json({ error: "Request URL is too long." }, 400);
     try { target = new URL(rawUrl); } catch { return json({ error: "Enter a valid URL." }, 400); }
-    if (!["http:", "https:"].includes(target.protocol)) return json({ error: "Only HTTP and HTTPS URLs are supported." }, 400);
-    if (target.username || target.password || isPrivateAddress(target.hostname)) return json({ error: "This destination is not allowed." }, 403);
-
-    // Resolve both address families and fail closed if any answer is private or DNS cannot be checked.
-    if (!(await resolvesOnlyToPublicAddresses(target.hostname, controller.signal))) {
-      return json({ error: "This hostname does not resolve to a permitted public address." }, 403);
+    if (!["http:", "https:"].includes(target.protocol) || target.username || target.password || isPrivateAddress(target.hostname)) {
+      return json({ error: "This destination is not allowed." }, 403);
     }
+
+    const bearer = request.headers.get("authorization") || "";
+    const tokenMatch = bearer.match(/^Bearer\\s+(.+)$/i);
+    if (!tokenMatch || !env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY || !env.EGRESS_GATEWAY_URL || !env.EGRESS_SHARED_SECRET) {
+      return json({ error: "Sign in is required to use the secure request gateway." }, 401);
+    }
+    const identityResponse = await fetch(new URL("/auth/v1/user", env.SUPABASE_URL), {
+      headers: { apikey: env.SUPABASE_PUBLISHABLE_KEY, authorization: "Bearer " + tokenMatch[1] },
+      signal: controller.signal
+    });
+    if (!identityResponse.ok) return json({ error: "Your session is invalid or has expired. Sign in again." }, 401);
+    const identity = await identityResponse.json() as { id?: string };
+    if (!identity.id) return json({ error: "Unable to verify your account session." }, 401);
+    const userAllowance = await env.API_RATE_LIMITER.limit({ key: "user:" + identity.id });
+    if (!userAllowance.success) return json({ error: "Your request limit has been reached. Wait one minute and try again." }, 429);
 
     const entries = Object.entries(input.headers || {});
     if (entries.length > 60) return json({ error: "Too many request headers." }, 400);
@@ -204,38 +219,37 @@ async function proxy(request: Request, env: Env): Promise<Response> {
       if (key.length > 128 || String(value).length > 8192) return json({ error: "A request header is too large." }, 400);
       headers.set(key, String(value));
     }
-    let body: BodyInit | undefined;
-    try { body = buildOutboundBody(method, input.bodyType, String(input.body || ""), headers); }
+    try { buildOutboundBody(method, input.bodyType, String(input.body || ""), new Headers(headers)); }
     catch (error) { return json({ error: error instanceof Error ? error.message : "Invalid request body." }, 400); }
 
-    // Redirects are deliberately not followed. The caller must submit the final URL for a fresh validation.
-    const upstream = await fetch(target, { method, headers, body, redirect: "manual", signal: controller.signal });
-    if (upstream.status >= 300 && upstream.status < 400) {
+    const envelope = {
+      userId: identity.id,
+      method,
+      url: target.toString(),
+      headers: Object.fromEntries(headers.entries()),
+      body: String(input.body || ""),
+      bodyType: input.bodyType || "json"
+    };
+    const rawEnvelope = JSON.stringify(envelope);
+    const timestamp = String(Date.now());
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.EGRESS_SHARED_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const signatureBytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(timestamp + "." + rawEnvelope)));
+    const signature = [...signatureBytes].map(byte => byte.toString(16).padStart(2, "0")).join("");
+    const gatewayResponse = await fetch(env.EGRESS_GATEWAY_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-devlens-timestamp": timestamp, "x-devlens-signature": signature },
+      body: rawEnvelope,
+      signal: controller.signal
+    });
+    const gatewayPayload = await gatewayResponse.json() as Record<string, unknown>;
+    if (!gatewayResponse.ok) return json({ error: String(gatewayPayload.error || "The secure request gateway rejected the request.") }, gatewayResponse.status);
+    if (typeof gatewayPayload.status !== "number" || typeof gatewayPayload.body !== "string") {
+      return json({ error: "The secure request gateway returned an invalid response." }, 502);
+    }
+    if (gatewayPayload.status >= 300 && gatewayPayload.status < 400) {
       return json({ error: "Redirects are blocked. Send a request to the destination URL directly." }, 400);
     }
-
-    const reader = upstream.body?.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    const responseLimit = Number(env.MAX_RESPONSE_BYTES || 5242880);
-    if (reader) {
-      while (true) {
-        const part = await reader.read();
-        if (part.done) break;
-        size += part.value.byteLength;
-        if (size > responseLimit) {
-          await reader.cancel();
-          return json({ error: "Response exceeded the 5 MB inspection limit." }, 413);
-        }
-        chunks.push(part.value);
-      }
-    }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-    const bodyText = new TextDecoder().decode(bytes);
-    const responseHeaders = Object.fromEntries([...upstream.headers.entries()].filter(([key]) => !["set-cookie"].includes(key.toLowerCase())));
-    return json({ status: upstream.status, statusText: upstream.statusText, duration: 0, size, headers: responseHeaders, body: bodyText });
+    return json(gatewayPayload);
   } catch (error) {
     const message = error instanceof Error && error.name === "AbortError" ? "The request timed out." : "The upstream request failed.";
     return json({ error: message }, 502);
