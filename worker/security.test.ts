@@ -21,6 +21,17 @@ describe("SSRF destination checks", () => {
   });
 });
 
+describe("additional IPv6 special-purpose ranges", () => {
+  it.each(["2001:1::1", "2001:db8::1", "2002:0808:0808::1", "3fff::1", "::ffff:127.0.0.1", "64:ff9b::7f00:1"])(
+    "blocks special-purpose or translated IPv6 address %s", host => {
+      expect(isPrivateAddress(host)).toBe(true);
+    }
+  );
+  it("allows a public IPv6 address outside special-purpose ranges", () => {
+    expect(isPrivateAddress("2606:4700:4700::1111")).toBe(false);
+  });
+});
+
 describe("multipart form-data request bodies", () => {
   it("builds multipart fields and lets Fetch generate the boundary", async () => {
     const headers = new Headers({ "content-type": "application/json" });
