@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import { Copy, Play, X } from "lucide-react";
 import { createUuid, decodeUrl, encodeUrl, exportCurl, fromBase64, inspectJwt, prettyJson, toBase64 } from "../lib/utilities";
 
@@ -14,7 +15,8 @@ function jsonDiff(before: unknown, after: unknown, path = "$"): Array<{ path: st
   return [{ path, before: before ?? null, after: after ?? null }];
 }
 
-export default function UtilityModal({ tool, onClose }: Props) {
+export default function UtilityModal({
+  const dialogRef = useModalAccessibility(onClose); tool, onClose }: Props) {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
@@ -68,7 +70,7 @@ export default function UtilityModal({ tool, onClose }: Props) {
   }
 
   return <div className="modal-backdrop" onClick={onClose}>
-    <section className="modal utility-modal" role="dialog" aria-modal="true" aria-labelledby="utility-title" onClick={event => event.stopPropagation()}>
+    <section ref={dialogRef} className="modal utility-modal" role="dialog" aria-modal="true" aria-labelledby="utility-title" onClick={event => event.stopPropagation()}>
       <div className="modal-title"><div><span className="utility-kicker">DEVLENS UTILITIES</span><b id="utility-title">{tool}</b></div><button onClick={onClose} aria-label="Close utility"><X size={16}/></button></div>
       <p>{tool === "JSON diff" ? "Compare two JSON documents. Separate them with a line containing ---." : tool === "JWT inspector" ? "Inspect the header and payload. Signature verification is not performed." : tool === "cURL exporter" ? "Paste a request object as JSON to generate a cURL command." : "Process text locally in your browser. Input is not sent to the server."}</p>
       {tool !== "UUID generator" && <textarea className="utility-input" value={input} onChange={event => setInput(event.target.value)} spellCheck={false} placeholder={tool === "JSON diff" ? '{"name":"before"}\n---\n{"name":"after"}' : tool === "cURL exporter" ? '{"method":"POST","url":"https://api.example.com/items","headers":{"content-type":"application/json"},"body":"{}"}' : "Paste your input here..."}/>}
