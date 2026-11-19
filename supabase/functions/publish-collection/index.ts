@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Cache-Control": "no-store"
 };
 
 const blockedHeader = /^(authorization|proxy-authorization|cookie|cookies|set-cookie|x-api-key|api[-_]?key|apikey|password|secret|client[-_]?secret|private[-_]?key|x-auth-token|token|jwt|signature|sig|auth|authentication|session)$/i;
@@ -127,6 +128,7 @@ Deno.serve(async (request: Request) => {
   const { data: existing } = await admin.from("public_collection_snapshots").select("slug").eq("collection_id", collection.id).eq("owner_id", authData.user.id).maybeSingle();
   const slug = existing?.slug || crypto.randomUUID().replace(/-/g, "");
   const snapshot = { format: "devlens-public-collection", version: 1, requests };
+  if (JSON.stringify(snapshot).length > 1_500_000) return Response.json({ error: "This collection is too large to publish. Reduce the number or size of requests." }, { status: 413, headers: corsHeaders });
   const { data: published, error: publishError } = await admin.from("public_collection_snapshots").upsert({
     collection_id: collection.id,
     owner_id: authData.user.id,
