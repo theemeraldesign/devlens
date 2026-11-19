@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDown, Bookmark, Braces, ChevronDown, Clock3, Code2, Command, Copy, ExternalLink, FileJson, Folder, Globe2, History, Layers3, Moon, MoreHorizontal, Plus, Send, ShieldCheck, Sun, X } from "lucide-react";
 import { sendRequest, type ApiRequest, type ApiResponse, type HeaderPair, type HttpMethod } from "./lib/request";
-import { readGuestCollections, writeGuestCollections, type LocalCollection } from "./lib/workspace";
+import { readGuestCollections, writeGuestCollections, type LocalCollection, type SavedRequest } from "./lib/workspace";
 import { readActiveEnvironmentId, readGuestEnvironments, resolveEnvironmentVariables, writeActiveEnvironmentId, writeGuestEnvironments, type LocalEnvironment } from "./lib/environments";
 import { redactUrl, safeSavedHeaders } from "./lib/utilities";
 import { readRequestHistory, writeRequestHistory, type RequestHistoryItem } from "./lib/history";
@@ -275,7 +275,7 @@ export default function App() {
   }
 
   async function importSharedCollection(name: string, rows: Array<Record<string, unknown>>) {
-    const importedRequests = rows.slice(0, 500).flatMap((row, index) => {
+    const importedRequests: SavedRequest[] = rows.slice(0, 500).flatMap((row, index) => {
       const method = String(row.method || "GET").toUpperCase();
       if (!methods.includes(method as HttpMethod) || typeof row.url !== "string") return [];
       let url: URL;
@@ -288,9 +288,9 @@ export default function App() {
       });
       return [{
         id: uid(), name: typeof row.name === "string" ? row.name.slice(0,120) : "Imported request " + (index + 1),
-        method, url: redactUrl(url.toString()), headers: safeSavedHeaders(headers),
+        method: method as HttpMethod, url: redactUrl(url.toString()), headers: safeSavedHeaders(headers),
         body: typeof row.body === "string" ? row.body.slice(0, 100_000) : "",
-        bodyType: row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json",
+        bodyType: (row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json") as SavedRequest["bodyType"],
         createdAt: new Date().toISOString()
       }];
     });
@@ -379,7 +379,7 @@ export default function App() {
       const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
       const rows = Array.isArray(parsed.requests) ? parsed.requests : [];
       if (!name || name.length > 120 || rows.length > 500) throw new Error("This is not a valid DevLens collection export.");
-      const importedRequests = rows.map((item, index) => {
+      const importedRequests: SavedRequest[] = rows.map((item, index) => {
         if (!item || typeof item !== "object") throw new Error("A request entry is invalid.");
         const row = item as Record<string, unknown>;
         const method = String(row.method || "GET").toUpperCase();
@@ -392,7 +392,7 @@ export default function App() {
         });
         return {
           id: uid(), name: typeof row.name === "string" ? row.name.slice(0,120) : `Imported request ${index + 1}`,
-          method, url: redactUrl(row.url), headers: safeSavedHeaders(headers), body: typeof row.body === "string" ? row.body.slice(0, 1024 * 1024) : "", bodyType: row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json",
+          method: method as HttpMethod, url: redactUrl(row.url), headers: safeSavedHeaders(headers), body: typeof row.body === "string" ? row.body.slice(0, 1024 * 1024) : "", bodyType: (row.bodyType === "text" || row.bodyType === "urlencoded" ? row.bodyType : "json") as SavedRequest["bodyType"],
           createdAt: new Date().toISOString()
         };
       });
