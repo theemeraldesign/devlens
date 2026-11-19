@@ -64,11 +64,6 @@ try {
   await collection.waitFor({ state: "visible" });
   await screenshot("collections-desktop");
 
-  const existingUnpublish = collection.getByRole("button", { name: /Unpublish/ });
-  if (await existingUnpublish.count()) {
-    page.once("dialog", dialog => dialog.accept());
-    await existingUnpublish.click();
-  }
   const publishResponse = page.waitForResponse(response => {
     if (!response.url().includes("/functions/v1/publish-collection")) return false;
     try { return JSON.parse(response.request().postData() || "{}").action === "publish"; } catch { return false; }
@@ -83,16 +78,19 @@ try {
   await shared.getByRole("heading", { name: "DevLens Demo API", exact: true }).waitFor();
   await shared.screenshot({ path: `${output}/shared-collection.png`, fullPage: false, animations: "disabled" });
   await shared.close();
+  await page.getByRole("button", { name: "DevLens home" }).click();
   page.once("dialog", dialog => dialog.accept());
-  await collection.getByRole("button", { name: /Unpublish/ }).click();
+  await page.getByRole("button", { name: "Unpublish DevLens Demo API" }).click();
 
   await page.goto(baseURL + "/environments", { waitUntil: "networkidle" });
   await maskAccount(page);
-  await page.getByRole("button", { name: "New environment" }).first().click();
-  await page.getByPlaceholder("Development").fill("Demo environment");
-  await page.getByPlaceholder("API_BASE_URL").fill("API_BASE_URL");
-  await page.getByPlaceholder("Variable value").fill("https://api.example.test");
-  await page.getByRole("button", { name: "Save environment" }).click();
+  if (!(await page.locator(".collection-list").getByText("Demo environment", { exact: true }).count())) {
+    await page.getByRole("button", { name: "New environment" }).first().click();
+    await page.getByPlaceholder("Development").fill("Demo environment");
+    await page.getByPlaceholder("API_BASE_URL").fill("API_BASE_URL");
+    await page.getByPlaceholder("Variable value").fill("https://api.example.test");
+    await page.getByRole("button", { name: "Save environment" }).click();
+  }
   await page.getByRole("heading", { name: "Environments", exact: true }).waitFor();
   await screenshot("environments-desktop");
 
