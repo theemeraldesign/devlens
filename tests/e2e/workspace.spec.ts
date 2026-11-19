@@ -73,7 +73,8 @@ test("imports a cURL command into the request editor", async ({ page }) => {
   await page.getByRole("button", { name: "Load into request editor" }).click();
   await expect(page.getByLabel("HTTP method")).toHaveValue("POST");
   await expect(page.getByLabel("Request URL")).toHaveValue("https://api.example.com/items");
-  await expect(page.locator(".body-editor")).toContainText("DevLens");
+  await page.getByRole("button", { name: "Body" }).click();
+  await expect(page.getByLabel("Request body")).toHaveValue('{"name":"DevLens"}');
 });
 
 test("renames, duplicates and deletes a collection", async ({ page }) => {
