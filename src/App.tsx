@@ -119,6 +119,18 @@ export default function App() {
     const local = readGuestCollections();
     const cloudIds = new Set(cloud.map(item => item.id));
     const merged = [...cloud, ...local.filter(item => !cloudIds.has(item.id))];
+    const publicationStatuses = await Promise.all(cloud.map(async collection => {
+      try {
+        const { data: status, error } = await invokePublishAction(collection.id, "status");
+        if (!error && status?.published && typeof status.slug === "string") {
+          return [collection.id, status.slug] as const;
+        }
+      } catch { /* A status lookup must not block workspace loading. */ }
+      return null;
+    }));
+    setPublishedSlugs(Object.fromEntries(publicationStatuses.filter(
+      (entry): entry is readonly [string, string] => entry !== null
+    )));
     setCollections(merged);
     if (!activeCollectionId && merged.length) {
       setActiveCollectionId(merged[0].id);
