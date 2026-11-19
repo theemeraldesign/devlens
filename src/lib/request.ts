@@ -111,6 +111,7 @@ async function sendBrowserRequest(request: ApiRequest, signal?: AbortSignal, fil
 
 export async function sendRequest(request: ApiRequest, signal?: AbortSignal, files: Array<{ key: string; file: File }> = []): Promise<ApiResponse> {
   // Multipart files are sent directly from the browser. The JSON Worker proxy cannot carry File objects.
+  if (files.length && (request.method === "GET" || request.method === "HEAD")) throw new Error("File uploads require a request method that supports a body, such as POST, PUT, or PATCH.");
   if (files.length) return sendBrowserRequest(request, signal, files);
   const started = performance.now();
   const headers = Object.fromEntries(request.headers.filter(h => h.enabled && h.key.trim()).map(h => [h.key.trim(), h.value]));
