@@ -28,6 +28,10 @@ In Supabase Dashboard → Authentication → URL Configuration:
 
 The password recovery flow depends on the redirect URL being on the allow list. If you customise the recovery email template, make sure it honours the supplied redirect destination.
 
+## Production email delivery
+
+Supabase's default SMTP service is for development only. It sends only to authorised team addresses and currently has a two-email-per-hour limit. Configure a custom SMTP provider before opening public registration or password recovery. Use a verified sender domain and configure its SPF, DKIM, and DMARC records. Keep email confirmation enabled. Supabase supports providers such as Resend and Brevo.
+
 ## Run deployment
 
 1. Open the DevLens repository on GitHub.
