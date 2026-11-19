@@ -6,8 +6,8 @@ import { supabase } from "../lib/supabase";
 
 type Props = { onClose: () => void; onAuthenticated: (user: User) => void };
 
-export default function AuthModal({
-  const dialogRef = useModalAccessibility(onClose); onClose, onAuthenticated }: Props) {
+export default function AuthModal({ onClose, onAuthenticated }: Props) {
+  const dialogRef = useModalAccessibility(onClose);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
