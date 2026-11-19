@@ -72,7 +72,7 @@ test.describe("authenticated workspace", () => {
   test.skip(!process.env.DEVLENS_E2E_EMAIL || !process.env.DEVLENS_E2E_PASSWORD, "Set DEVLENS_E2E_EMAIL and DEVLENS_E2E_PASSWORD to run account-backed workspace tests.");
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).first().click();
     await page.getByLabel("Email address").fill(process.env.DEVLENS_E2E_EMAIL || "");
     await page.getByLabel("Password").fill(process.env.DEVLENS_E2E_PASSWORD || "");
     await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
