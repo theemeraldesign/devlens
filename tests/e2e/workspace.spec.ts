@@ -107,3 +107,18 @@ test("edits multipart form-data fields in the request builder", async ({ page })
   await page.getByRole("button", { name: "Remove form data field 1" }).click();
   await expect(page.getByLabel("Form data key 1")).toHaveValue("status");
 });
+
+test("keeps the complete workspace usable on a narrow Android viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /sign in or create a devlens account/i })).toBeVisible();
+  await expect(page.getByLabel("Request URL")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Workspace" })).toBeVisible();
+  await page.getByRole("button", { name: "Environments" }).click();
+  await expect(page.getByRole("region", { name: "Mobile workspace menu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /new environment/i })).toBeVisible();
+  const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, page: document.documentElement.scrollWidth }));
+  expect(widths.page).toBeLessThanOrEqual(widths.viewport);
+  await page.getByRole("button", { name: "Tools" }).click();
+  await expect(page.getByRole("button", { name: "JSON formatter" })).toBeVisible();
+});
