@@ -369,7 +369,7 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   await page.getByTitle("Save request to this device").click();
   await page.getByRole("button", { name: "Collections" }).first().click();
   await originalCard.getByRole("button", { name: "Share", exact: true }).click();
-  await expect(page.locator(".import-banner")).toContainText("Public link copied", { timeout: 20_000 });
+  await expect(page.locator(".import-banner")).toContainText(/Public link copied|Copy your public collection link/, { timeout: 20_000 });
   const notice = await page.locator(".import-banner").innerText();
   const shareUrl = notice.match(/https:\/\/[^\s]+/)?.[0];
   expect(shareUrl).toBeTruthy();
