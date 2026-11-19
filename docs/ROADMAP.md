@@ -22,9 +22,10 @@
 - [ ] Multipart form-data editor.
 - [x] Environment variable interpolation.
 - [x] Persist request history locally and sync it across devices.
-- [ ] Search and filter request history.
+- [x] Search and filter request history.
+- [x] Clear local and account request history.
 - [x] Collection JSON import/export.
-- [ ] Collection rename, delete and duplicate.
+- [x] Collection rename, delete and duplicate.
 
 ## Developer utilities
 - [x] JSON formatter.
@@ -33,14 +34,15 @@
 - [x] Base64 and URL encode/decode.
 - [x] UUID generator.
 - [x] cURL exporter.
-- [ ] cURL importer.
+- [x] cURL importer with shell-operator and command-substitution rejection.
 - [ ] XML formatter and validator.
 
 ## Accounts and sharing
 - [x] Email/password authentication.
 - [x] Guest-to-account import flow.
 - [x] Cloud collection create/save and cross-device loading.
-- [ ] Collection rename, delete and full sync conflict handling.
+- [x] Collection rename, delete and duplicate.
+- [ ] Full sync conflict handling.
 - [x] Private environment CRUD and cross-device sync.
 - [ ] Public collection publishing with server-side sanitization.
 - [ ] Public collection import into a workspace.
