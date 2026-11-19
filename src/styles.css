@@ -317,3 +317,14 @@
 .modal-backdrop{z-index:20}
 .mobile-nav{z-index:6}
 .mobile-panel{z-index:7}
+
+
+/* Restore native vertical page scrolling on Android/mobile browsers. */
+@media(max-width:760px){
+  html,body,#root{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:visible!important}
+  body{position:static!important;touch-action:pan-y;overscroll-behavior-y:auto!important}
+  #root{display:block;}
+  .app{display:flex;min-height:100dvh;height:auto!important;overflow-x:clip!important;overflow-y:visible!important;touch-action:pan-y}
+  .main{flex:1 0 auto;min-height:100dvh;height:auto!important;overflow:visible!important;touch-action:pan-y}
+  .screen-page{height:auto!important;overflow:visible!important}
+}
