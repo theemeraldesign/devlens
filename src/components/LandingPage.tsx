@@ -25,8 +25,9 @@ function Brand(){return <a className="landing-brand" href="/" aria-label="DevLen
 export default function LandingPage({onGetStarted,onSignIn}:Props){
  const [folderOpen,setFolderOpen]=useState(false);
  return <div className="landing-page">
+  <a className="skip-link" href="#landing-main">Skip to content</a>
   <header className="landing-header"><Brand/><nav><a href="#features">Features</a><a href="#workflow">How it works</a><a href="#security">Security</a></nav><div><button className="landing-signin" onClick={onSignIn}>Sign in</button><button className="landing-header-cta" onClick={onGetStarted}>Create account <ArrowUpRight size={15}/></button></div></header>
-  <main>
+  <main id="landing-main" tabIndex={-1}>
    <section className="landing-hero">
     <div className="landing-glow"/>
     <div className="landing-copy"><div className="landing-kicker"><i/> THE API WORKSPACE FOR BUILDERS</div><h1>Make every API<br/><em>make sense.</em></h1><p>Build requests, inspect responses, and organise your APIs in one focused workspace. Clear tools for the work behind great software.</p><div className="landing-actions"><button className="landing-primary" onClick={onGetStarted}>Start building <ArrowRight size={17}/></button><a href="https://github.com/theemeraldesign/devlens" target="_blank" rel="noreferrer"><Github size={17}/> View source</a></div><div className="landing-proof"><span><Check/> Private workspaces</span><span><Check/> Open source</span><span><Check/> Built for developers</span></div></div>
