@@ -268,6 +268,66 @@ export default {
       return proxy(request, env);
     }
     if (url.pathname.startsWith("/api/")) return json({ error: "Not found." }, 404);
-    return env.ASSETS.fetch(request);
+    const assetResponse = await env.ASSETS.fetch(request);
+    const contentType = assetResponse.headers.get("content-type") || "";
+    if (request.method !== "GET" || !contentType.includes("text/html")) return assetResponse;
+
+    const page = pageMetadata(url.pathname);
+    const canonicalUrl = url.origin + (url.pathname === "/" ? "/" : url.pathname.replace(/\\/$/, ""));
+    let html = await assetResponse.text();
+    const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const setMeta = (kind: "name" | "property", key: string, value: string) => {
+      const escaped = escapeAttribute(value);
+      const pattern = new RegExp(`<meta\\s+${kind}=["']${key}["']\\s+content=["'][^"']*["']\\s*/?>`, "i");
+      html = html.replace(pattern, `<meta ${kind}="${key}" content="${escaped}" />`);
+    };
+    html = html.replace(/<title>[^<]*<\\/title>/i, `<title>${escapeAttribute(page.title)}</title>`);
+    setMeta("name", "description", page.description);
+    setMeta("property", "og:title", page.title);
+    setMeta("property", "og:description", page.description);
+    setMeta("property", "og:url", canonicalUrl);
+    setMeta("name", "twitter:title", page.title);
+    setMeta("name", "twitter:description", page.description);
+    html = html.replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["']\\s*\\/>/i, `<link rel="canonical" href="${escapeAttribute(canonicalUrl)}" />`);
+
+    const headers = new Headers(assetResponse.headers);
+    headers.set("content-type", "text/html; charset=utf-8");
+    headers.set("cache-control", "public, max-age=0, must-revalidate");
+    return new Response(html, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
   }
 };
+
+function pageMetadata(pathname: string): { title: string; description: string } {
+  if (pathname.startsWith("/collections")) return {
+    title: "Collections | DevLens",
+    description: "Organise, reuse and share your API requests with DevLens collections."
+  };
+  if (pathname.startsWith("/environments")) return {
+    title: "Environments | DevLens",
+    description: "Manage API variables for development, staging and production in DevLens."
+  };
+  if (pathname.startsWith("/history")) return {
+    title: "Request history | DevLens",
+    description: "Find and replay your recent API requests with DevLens."
+  };
+  if (pathname.startsWith("/tools")) return {
+    title: "Developer tools | DevLens",
+    description: "Format JSON, inspect JWTs and encode or decode data with DevLens utilities."
+  };
+  if (pathname.startsWith("/share") || pathname.startsWith("/shared")) return {
+    title: "Shared API collection | DevLens",
+    description: "View a shared, read-only API request collection on DevLens."
+  };
+  if (pathname.startsWith("/auth") || pathname.startsWith("/login")) return {
+    title: "Sign in | DevLens",
+    description: "Sign in to your DevLens API development workspace."
+  };
+  if (pathname === "/" || pathname === "") return {
+    title: "DevLens | Your API workspace",
+    description: "Build requests. Inspect responses. Organise your APIs in one focused workspace."
+  };
+  return {
+    title: "DevLens | API development workspace",
+    description: "Build, send and inspect API requests in your DevLens workspace."
+  };
+}
