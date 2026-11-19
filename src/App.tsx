@@ -229,6 +229,58 @@ export default function App() {
     }
   }
 
+  async function renameCollection(id: string) {
+    const current = collections.find(item => item.id === id);
+    if (!current) return;
+    const nextName = window.prompt("Rename collection", current.name)?.trim();
+    if (!nextName || nextName === current.name) return;
+    if (nextName.length > 120) { setAccountNotice("Collection names must be 120 characters or fewer."); return; }
+    const next = collections.map(item => item.id === id ? { ...item, name: nextName, updatedAt: new Date().toISOString() } : item);
+    setCollections(next);
+    if (activeCollectionId === id) setCollectionName(nextName);
+    if (supabase && accountId && current.cloudOwnerId === accountId) {
+      const { error: updateError } = await supabase.from("collections").update({ name: nextName, updated_at: new Date().toISOString() }).eq("id", id).eq("owner_id", accountId);
+      if (updateError) setAccountNotice("Collection renamed locally, but cloud sync failed: " + updateError.message);
+    } else writeGuestCollections(next.filter(item => !item.cloudOwnerId));
+  }
+
+  async function duplicateCollection(id: string) {
+    const current = collections.find(item => item.id === id);
+    if (!current) return;
+    const copy: LocalCollection = { ...current, id: uid(), name: current.name + " copy", requests: current.requests.map(item => ({ ...item, id: uid() })), updatedAt: new Date().toISOString(), cloudOwnerId: undefined };
+    const next = [copy, ...collections];
+    if (supabase && accountId) {
+      const { error: insertError } = await supabase.from("collections").insert({
+        id: copy.id, owner_id: accountId, guest_id: copy.id, name: copy.name,
+        content: { requests: copy.requests }
+      });
+      if (insertError) { setAccountNotice("Unable to duplicate collection: " + insertError.message); return; }
+      copy.cloudOwnerId = accountId;
+    } else writeGuestCollections(next);
+    setCollections(next);
+    setActiveCollectionId(copy.id);
+    setCollectionName(copy.name);
+    setAccountNotice("Collection duplicated.");
+  }
+
+  async function deleteCollection(id: string) {
+    const current = collections.find(item => item.id === id);
+    if (!current || !window.confirm(`Delete "${current.name}" and its saved requests? This cannot be undone.`)) return;
+    if (supabase && accountId && current.cloudOwnerId === accountId) {
+      const { error: deleteError } = await supabase.from("collections").delete().eq("id", id).eq("owner_id", accountId);
+      if (deleteError) { setAccountNotice("Unable to delete collection: " + deleteError.message); return; }
+    }
+    const next = collections.filter(item => item.id !== id);
+    setCollections(next);
+    writeGuestCollections(next.filter(item => !item.cloudOwnerId));
+    if (activeCollectionId === id) {
+      const replacement = next[0];
+      setActiveCollectionId(replacement?.id ?? null);
+      setCollectionName(replacement?.name ?? "My workspace");
+    }
+    setAccountNotice("Collection deleted.");
+  }
+
   function exportActiveCollection() {
     const collection = collections.find(item => item.id === activeCollectionId);
     if (!collection) { setAccountNotice("Select a collection before exporting."); return; }
@@ -413,7 +465,7 @@ export default function App() {
       <nav className="side-nav" aria-label="Primary workspace navigation">
         {workspaceNav.map(({name, icon: Icon}) => <button key={name as string} className={activeNav===name ? "active" : ""} onClick={() => setActiveNav(name as string)}><Icon size={17}/>{name as string}{name==="Collections" && <span className="nav-count">{collections.length}</span>}</button>)}
       </nav>
-      {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,bodyType:saved.bodyType ?? "json",headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
+      {activeNav === "Collections" && <div className="collection-list">{collections.length ? collections.map(collection=><div className="collection-group" key={collection.id}><div className="collection-row"><button className={activeCollectionId===collection.id?"collection-choice active":"collection-choice"} onClick={()=>{setActiveCollectionId(collection.id);setCollectionName(collection.name);}}><Folder size={13}/><span>{collection.name}</span><small>{collection.requests.length}</small></button><div className="collection-row-actions"><button title={`Rename ${collection.name}`} aria-label={`Rename ${collection.name}`} onClick={()=>void renameCollection(collection.id)}>Rename</button><button title={`Duplicate ${collection.name}`} aria-label={`Duplicate ${collection.name}`} onClick={()=>void duplicateCollection(collection.id)}>Copy</button><button title={`Delete ${collection.name}`} aria-label={`Delete ${collection.name}`} onClick={()=>void deleteCollection(collection.id)}>Delete</button></div></div>{collection.requests.map(saved=><button className="saved-request-choice" key={saved.id} onClick={()=>{setRequest({method:saved.method as HttpMethod,url:saved.url,body:saved.body,bodyType:saved.bodyType ?? "json",headers:saved.headers.map(header=>({...header,id:uid()}))});setResponse(null);}}><span className="saved-method">{saved.method}</span><span>{saved.name}</span></button>)}</div>) : <div className="collection-empty">No collections yet. Create one to save requests.</div>}</div>}
       {activeNav === "Collections" && <div className="collection-actions"><button onClick={exportActiveCollection} disabled={!activeCollectionId}>Export selected</button><label>Import JSON<input type="file" accept=".json,application/json" onChange={event => { void importCollectionFile(event.target.files?.[0]); event.currentTarget.value = ""; }}/></label></div>}
       {activeNav === "Environments" && <div className="collection-list"><button className="environment-new" onClick={()=>{setEditingEnvironment(null);setShowEnvironmentModal(true);}}><Plus size={13}/> New environment</button>{environments.length ? environments.map(environment=><div className="collection-group" key={environment.id}><button className={activeEnvironmentId===environment.id?"collection-choice active":"collection-choice"} onClick={()=>activateEnvironment(environment.id)}><Globe2 size={13}/><span>{environment.name}</span>{activeEnvironmentId===environment.id && <small>ACTIVE</small>}</button><button className="saved-request-choice" onClick={()=>{setEditingEnvironment(environment);setShowEnvironmentModal(true);}}>Edit variables</button></div>) : <div className="collection-empty">No environments yet. Add one to use variables.</div>}</div>}
       {activeNav === "History" && <div className="tool-subnav">{history.length ? history.map(item=><button key={item.id} onClick={()=>updateRequest({method:item.method,url:item.url})}><span className="saved-method">{item.method}</span>{item.status ?? "—"} · {item.url}</button>) : <button disabled>No requests yet</button>}</div>}
