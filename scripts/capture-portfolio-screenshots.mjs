@@ -48,8 +48,19 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.goto(baseURL + "/collections", { waitUntil: "networkidle" });
-  let collection = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) }).last();
-  if (await collection.count() === 0) {
+  const demoCards = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) });
+  while (await demoCards.count() > 1) {
+    const before = await demoCards.count();
+    const duplicate = demoCards.first();
+    page.once("dialog", dialog => dialog.accept());
+    await duplicate.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.waitForFunction(({ name, count }) =>
+      Array.from(document.querySelectorAll(".screen-card h3")).filter(element => element.textContent?.trim() === name).length < count,
+      { name: "DevLens Demo API", count: before }
+    );
+  }
+  let collection = demoCards.last();
+  if (await demoCards.count() === 0) {
     await page.getByRole("button", { name: "New collection" }).first().click();
     await page.getByPlaceholder("Collection name").fill("DevLens Demo API");
     await page.getByRole("button", { name: "Create collection" }).click();
