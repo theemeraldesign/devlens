@@ -8,12 +8,14 @@ DevLens is an open-source API development studio for building requests, inspecti
 
 The first application foundation is in place:
 - Responsive request studio with seven HTTP methods.
-- Query parameters, editable headers, request body and authentication-type selector.
+- Query parameters, editable headers, JSON/text/URL-encoded request bodies and authentication.
 - Response status, duration, size, pretty/raw body and response headers.
 - Guest collections, saved requests, private environments and request history stored in the browser.
 - Environment variable interpolation in URLs, headers, query parameters and request bodies.
 - Email/password account flow through Supabase Auth, with cloud collection, environment and redacted request-history sync.
-- Guest-to-account collection import. Local copies are retained after import.
+- Guest-to-account collection and environment import. Local copies are retained after import.
+- Collection JSON import/export with credential header and URL-query redaction on import.
+- Redacted request history stored locally for guests and synced to the signed-in account.
 - Initial developer utilities: JSON formatting, JWT decoding, Base64, URL encoding, UUID generation and cURL export helpers.
 - Cloudflare Worker API proxy with request/response size limits, timeouts, redirect blocking and public-address checks.
 - Supabase schema with owner-scoped RLS for private data and a separate public snapshot surface.
