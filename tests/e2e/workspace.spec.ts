@@ -4,6 +4,8 @@ test("opens the request studio and creates a local collection", async ({ page })
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /request studio/i })).toBeVisible();
   await expect(page.getByLabel("Request URL")).toHaveValue("https://jsonplaceholder.typicode.com/posts/1");
+  await page.getByRole("button", { name: "Open main menu" }).click();
+  await page.getByRole("button", { name: "Open main menu" }).click();
   await page.getByRole("button", { name: /new collection/i }).click();
   await page.getByPlaceholder("Collection name").fill("Portfolio API");
   await page.getByRole("button", { name: "Create collection" }).click();
@@ -18,7 +20,7 @@ test("switches between dark and light themes", async ({ page }) => {
 });
 test("opens the JSON formatter utility", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Utilities" }).click();
+  await page.getByRole("button", { name: "Tools" }).click();
   await page.getByRole("button", { name: "JSON formatter" }).click();
   await page.locator(".utility-input").fill('{"ok":true,"count":2}');
   await page.getByRole("button", { name: /run utility/i }).click();
@@ -108,17 +110,25 @@ test("edits multipart form-data fields in the request builder", async ({ page })
   await expect(page.getByLabel("Form data key 1")).toHaveValue("status");
 });
 
-test("keeps the complete workspace usable on a narrow Android viewport", async ({ page }) => {
+test("uses separate responsive screens and a visible brand on Android", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: /sign in or create a devlens account/i })).toBeVisible();
+  await expect(page.locator(".top-brand")).toBeVisible();
   await expect(page.getByLabel("Request URL")).toBeVisible();
   await expect(page.getByRole("button", { name: "Workspace" })).toBeVisible();
+  await page.getByRole("button", { name: "Collections" }).click();
+  await expect(page).toHaveURL(/\\/collections$/);
+  await expect(page.getByRole("heading", { name: "Request collections" })).toBeVisible();
   await page.getByRole("button", { name: "Environments" }).click();
-  await expect(page.getByRole("region", { name: "Mobile workspace menu" })).toBeVisible();
+  await expect(page).toHaveURL(/\\/environments$/);
+  await expect(page.getByRole("heading", { name: "Environments" })).toBeVisible();
   await expect(page.getByRole("button", { name: /new environment/i })).toBeVisible();
+  await page.getByRole("button", { name: "History" }).click();
+  await expect(page).toHaveURL(/\\/history$/);
+  await expect(page.getByRole("heading", { name: "Request history" })).toBeVisible();
+  await page.getByRole("button", { name: "Tools" }).click();
+  await expect(page).toHaveURL(/\\/tools$/);
+  await expect(page.getByRole("button", { name: "JSON formatter" })).toBeVisible();
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, page: document.documentElement.scrollWidth }));
   expect(widths.page).toBeLessThanOrEqual(widths.viewport);
-  await page.getByRole("button", { name: "Tools" }).click();
-  await expect(page.getByRole("button", { name: "JSON formatter" })).toBeVisible();
 });
