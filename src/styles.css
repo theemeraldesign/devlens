@@ -77,3 +77,8 @@
 .collection-actions button:disabled{opacity:.45;cursor:not-allowed}
 .collection-actions input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 .collection-actions label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+
+.body-toolbar{gap:10px;justify-content:flex-start}
+.body-toolbar label{font:8px "DM Mono",monospace;letter-spacing:.8px;color:var(--muted)}
+.body-toolbar select{border:1px solid var(--line);border-radius:4px;background:var(--input);color:var(--text);font:9px "DM Mono",monospace;padding:4px 6px}
+.body-toolbar span:last-child{margin-left:auto}
