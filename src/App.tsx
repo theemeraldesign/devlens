@@ -336,6 +336,7 @@ export default function App() {
     saveFormDataRows(formDataRows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
   };
   async function createCollection() {
+    collectionSyncVersion.current += 1;
     const name = collectionName.trim();
     if (!name) return;
     const collection: LocalCollection = { id: uid(), name, requests: [], updatedAt: new Date().toISOString() };
@@ -401,6 +402,7 @@ export default function App() {
   }
 
   async function importSharedCollection(name: string, rows: Array<Record<string, unknown>>) {
+    collectionSyncVersion.current += 1;
     const importedRequests: SavedRequest[] = rows.slice(0, 500).flatMap((row, index) => {
       const method = String(row.method || "GET").toUpperCase();
       if (!methods.includes(method as HttpMethod) || typeof row.url !== "string") return [];
@@ -434,6 +436,7 @@ export default function App() {
   }
 
   async function renameCollection(id: string) {
+    collectionSyncVersion.current += 1;
     const current = collections.find(item => item.id === id);
     if (!current) return;
     const nextName = (await askPrompt("Enter a new name for this collection.", current.name))?.trim();
@@ -449,6 +452,7 @@ export default function App() {
   }
 
   async function duplicateCollection(id: string) {
+    collectionSyncVersion.current += 1;
     const current = collections.find(item => item.id === id);
     if (!current) return;
     const copy: LocalCollection = { ...current, id: uid(), name: current.name + " copy", requests: current.requests.map(item => ({ ...item, id: uid() })), updatedAt: new Date().toISOString(), cloudOwnerId: undefined };
@@ -470,6 +474,7 @@ export default function App() {
   }
 
   async function deleteCollection(id: string) {
+    collectionSyncVersion.current += 1;
     const current = collections.find(item => item.id === id);
     if (!current || !(await askConfirm(`Delete "${current.name}" and its saved requests? This cannot be undone.`, "Delete collection"))) return;
     if (supabase && accountId && current.cloudOwnerId === accountId) {
@@ -513,6 +518,7 @@ export default function App() {
 
   async function importCollectionFile(file: File | undefined) {
     if (!file) return;
+    collectionSyncVersion.current += 1;
     try {
       if (file.size > 2 * 1024 * 1024) throw new Error("Collection files must be smaller than 2 MB.");
       const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
@@ -551,6 +557,7 @@ export default function App() {
       setCollections(next);
       setActiveCollectionId(collection.id);
       setCollectionName(collection.name);
+      if (supabase && accountId) await syncCloudCollections(accountId);
       setAccountNotice(`Imported "${collection.name}" with ${importedRequests.length} request(s).`);
     } catch (error) {
       setAccountNotice(error instanceof Error ? error.message : "Unable to import this collection.");
