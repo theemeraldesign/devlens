@@ -65,8 +65,9 @@ export function isPrivateAddress(host: string): boolean {
   }
 
   if (/^[0-9]{1,3}([.][0-9]{1,3}){3}$/.test(h)) {
-    const [a,b,c] = h.split(".").map(Number);
-    if ([a,b,c].some(n => n < 0 || n > 255)) return true;
+    const octets = h.split(".").map(Number);
+    if (octets.length !== 4 || octets.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+    const [a,b,c] = octets;
     if (a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) ||
         (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
         (a === 100 && b >= 64 && b <= 127) || (a === 192 && b === 0 && c === 0) ||
