@@ -84,7 +84,7 @@ test("modal traps keyboard focus and restores it on close", async ({ page }) => 
   const dialog = page.getByRole("dialog");
   const close = dialog.getByRole("button", { name: "Close" });
   await expect(close).toBeFocused();
-  const lastAction = dialog.getByRole("button", { name: /New to DevLens/ });
+  const lastAction = dialog.getByRole("button", { name: /Already have an account/ });
   await lastAction.focus();
   await page.keyboard.press("Tab");
   await expect(close).toBeFocused();
@@ -95,7 +95,7 @@ test("modal traps keyboard focus and restores it on close", async ({ page }) => 
 test("password recovery link opens the password update form", async ({ page }) => {
   await page.goto("/?password-reset=1");
   await expect(page.getByRole("dialog")).toContainText("Choose a new password");
-  await expect(page.getByLabel("New password")).toBeVisible();
+  await expect(page.getByLabel("New password", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Confirm new password")).toBeVisible();
 });
 
@@ -328,7 +328,7 @@ test("response inspector supports pretty, raw, headers and JSON download", async
   await page.getByRole("button", { name: "Headers", exact: true }).click();
   await expect(page.locator(".response-code")).toContainText('"x-devlens-check": "passed"');
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("devlens-response.json");
   await page.getByRole("button", { name: "History" }).click();
@@ -394,14 +394,21 @@ test("publishes, opens, imports and unpublishes a public collection", async ({ p
   await originalCard.getByRole("button", { name: "Open workspace" }).click();
   await page.getByTitle("Save request to this device").click();
   await page.getByRole("button", { name: "Collections" }).first().click();
+  const publishResponsePromise = page.waitForResponse(response => {
+    if (!response.url().includes("/functions/v1/publish-collection")) return false;
+    try {
+      return JSON.parse(response.request().postData() || "{}").action === "publish";
+    } catch { return false; }
+  });
   await originalCard.getByRole("button", { name: "Share", exact: true }).click();
-  await expect(page.locator(".import-banner")).toContainText(/Public link copied|Copy your public collection link/, { timeout: 20_000 });
-  const notice = await page.locator(".import-banner").innerText();
-  const shareUrl = notice.match(/https:\/\/[^\s]+/)?.[0];
-  expect(shareUrl).toBeTruthy();
+  const publishResponse = await publishResponsePromise;
+  expect(publishResponse.ok()).toBeTruthy();
+  const publishPayload = await publishResponse.json() as { slug?: string };
+  expect(publishPayload.slug).toBeTruthy();
+  const shareUrl = new URL("/share/" + publishPayload.slug, page.url()).toString();
 
   const sharedPage = await page.context().newPage();
-  await sharedPage.goto(shareUrl!);
+  await sharedPage.goto(shareUrl);
   await expect(sharedPage.getByRole("heading", { name, exact: true })).toBeVisible();
   await expect(sharedPage.locator(".shared-request-list")).toContainText("Untitled request");
   await sharedPage.getByRole("button", { name: "Import to workspace" }).click();
