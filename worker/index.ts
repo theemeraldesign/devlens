@@ -15,7 +15,7 @@ type ProxyInput = {
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 const PRIVATE_HOSTS = /^(localhost|.*\\.localhost|.*\\.local|metadata\\.google\\.internal)$/i;
 
-function isPrivateAddress(host: string): boolean {
+export function isPrivateAddress(host: string): boolean {
   const h = host.toLowerCase().replace(/^\\[|\\]$/g, "").split("%")[0];
   if (PRIVATE_HOSTS.test(h)) return true;
 
