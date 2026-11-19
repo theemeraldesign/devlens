@@ -315,13 +315,27 @@ export default function App() {
     }
   }
 
+  async function invokePublishAction(collectionId: string, action: "status" | "publish" | "unpublish") {
+    const body = { collectionId, action };
+    const first = await supabase!.functions.invoke("publish-collection", { body });
+    const status = (first.error as unknown as { context?: Response } | null)?.context?.status;
+    if (status !== 401) return first;
+    const { data: refreshed, error: refreshError } = await supabase!.auth.refreshSession();
+    if (refreshError || !refreshed.session) return first;
+    return supabase!.functions.invoke("publish-collection", {
+      body,
+      headers: { Authorization: `Bearer ${refreshed.session.access_token}` }
+    });
+  }
+
   async function publishCollection(id: string) {
     if (!supabase || !accountId) { setShowAuth(true); return; }
     setAccountNotice("Preparing public collection link…");
-    const status = await supabase.functions.invoke("publish-collection", { body: { collectionId: id, action: "status" } });
+    const status = await invokePublishAction(id, "status");
+    if (status.error) { setAccountNotice(status.error.message); return; }
     let slug = status.data?.slug as string | undefined;
     if (!status.data?.published || !slug) {
-      const { data, error: publishError } = await supabase.functions.invoke("publish-collection", { body: { collectionId: id, action: "publish" } });
+      const { data, error: publishError } = await invokePublishAction(id, "publish");
       if (publishError || !data?.slug) {
         setAccountNotice(publishError?.message || data?.error || "Unable to publish this collection.");
         return;
@@ -341,7 +355,7 @@ export default function App() {
 
   async function unpublishCollection(id: string) {
     if (!supabase || !accountId || !window.confirm("Stop sharing this collection? Its public link will stop working.")) return;
-    const { data, error: unpublishError } = await supabase.functions.invoke("publish-collection", { body: { collectionId: id, action: "unpublish" } });
+    const { data, error: unpublishError } = await invokePublishAction(id, "unpublish");
     if (unpublishError || data?.error) { setAccountNotice(unpublishError?.message || data.error); return; }
     setPublishedSlugs(current => { const next = { ...current }; delete next[id]; return next; });
     setAccountNotice("Collection is no longer public. Its old link is disabled.");
