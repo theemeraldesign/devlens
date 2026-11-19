@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createUuid, decodeUrl, encodeUrl, fromBase64, inspectJwt, prettyJson, safePublicCollection, toBase64 } from "./utilities";
+import { createUuid, decodeUrl, encodeUrl, fromBase64, inspectJwt, prettyJson, redactUrl, safePublicCollection, safeSavedHeaders, toBase64 } from "./utilities";
 
 describe("developer utilities", () => {
   it("formats JSON", () => expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}'));
@@ -27,7 +27,6 @@ describe("public collection sanitization", () => {
   });
 });
 
-import { redactUrl, safeSavedHeaders } from "./utilities";
 
 describe("sensitive request data handling", () => {
   it("redacts secret query parameters before adding a URL to history", () => {
