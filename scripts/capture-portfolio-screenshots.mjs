@@ -48,29 +48,27 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.goto(baseURL + "/collections", { waitUntil: "networkidle" });
-  const previousDemos = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) });
-  for (let index = await previousDemos.count() - 1; index >= 0; index -= 1) {
-    const oldCard = previousDemos.nth(index);
-    const oldUnpublish = oldCard.getByRole("button", { name: /Unpublish/ });
-    if (await oldUnpublish.count()) {
-      page.once("dialog", dialog => dialog.accept());
-      await oldUnpublish.click();
-      await page.locator(".import-banner").waitFor({ state: "visible" });
-    }
-    page.once("dialog", dialog => dialog.accept());
-    await oldCard.getByRole("button", { name: "Delete", exact: true }).click();
+  let collection = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) }).last();
+  if (await collection.count() === 0) {
+    await page.getByRole("button", { name: "New collection" }).first().click();
+    await page.getByPlaceholder("Collection name").fill("DevLens Demo API");
+    await page.getByRole("button", { name: "Create collection" }).click();
+    collection = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) }).last();
+    await collection.waitFor({ state: "visible" });
   }
-  await page.getByRole("button", { name: "New collection" }).first().click();
-  await page.getByPlaceholder("Collection name").fill("DevLens Demo API");
-  await page.getByRole("button", { name: "Create collection" }).click();
-  const collection = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) });
-  await collection.waitFor({ state: "visible" });
-  await collection.getByRole("button", { name: "Open workspace" }).click();
-  await page.getByTitle("Save request to this device").click();
-  await page.getByRole("button", { name: "Collections" }).first().click();
+  if ((await collection.innerText()).includes("0 saved")) {
+    await collection.getByRole("button", { name: "Open workspace" }).click();
+    await page.getByTitle("Save request to this device").click();
+    await page.getByRole("button", { name: "Collections" }).first().click();
+  }
   await collection.waitFor({ state: "visible" });
   await screenshot("collections-desktop");
 
+  const existingUnpublish = collection.getByRole("button", { name: /Unpublish/ });
+  if (await existingUnpublish.count()) {
+    page.once("dialog", dialog => dialog.accept());
+    await existingUnpublish.click();
+  }
   const publishResponse = page.waitForResponse(response => {
     if (!response.url().includes("/functions/v1/publish-collection")) return false;
     try { return JSON.parse(response.request().postData() || "{}").action === "publish"; } catch { return false; }
@@ -85,15 +83,8 @@ try {
   await shared.getByRole("heading", { name: "DevLens Demo API", exact: true }).waitFor();
   await shared.screenshot({ path: `${output}/shared-collection.png`, fullPage: false, animations: "disabled" });
   await shared.close();
-
-  const demoCard = page.locator(".screen-card").filter({ has: page.getByRole("heading", { name: "DevLens Demo API", exact: true }) }).last();
-  const demoUnpublish = demoCard.getByRole("button", { name: /Unpublish/ });
-  if (await demoUnpublish.count()) {
-    page.once("dialog", dialog => dialog.accept());
-    await demoUnpublish.click();
-  }
   page.once("dialog", dialog => dialog.accept());
-  await demoCard.getByRole("button", { name: "Delete", exact: true }).click();
+  await collection.getByRole("button", { name: /Unpublish/ }).click();
 
   await page.goto(baseURL + "/environments", { waitUntil: "networkidle" });
   await maskAccount(page);
