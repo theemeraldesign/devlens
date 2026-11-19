@@ -17,3 +17,12 @@ describe("developer utilities", () => {
     });
   });
 });
+
+describe("public collection sanitization", () => {
+  it("removes sensitive header rows from array-based headers", () => {
+    expect(safePublicCollection({ headers: [
+      { key: "Authorization", value: "Bearer private" },
+      { key: "Accept", value: "application/json" }
+    ] })).toEqual({ headers: [{ key: "Accept", value: "application/json" }] });
+  });
+});
