@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOutboundBody, isPrivateAddress } from "./index";
+import { buildOutboundBody, isPrivateAddress, isProxyEgressEnabled } from "./index";
 
 describe("SSRF destination checks", () => {
   it.each([
@@ -50,5 +50,14 @@ describe("multipart form-data request bodies", () => {
   it("rejects malformed form-data input", () => {
     expect(() => buildOutboundBody("POST", "formdata", "{bad json", new Headers())).toThrow(/JSON array/);
     expect(() => buildOutboundBody("POST", "formdata", JSON.stringify([{ key: "", value: "x" }]), new Headers())).toThrow(/Each form-data field/);
+  });
+});
+
+describe("proxy release gate", () => {
+  it("keeps outbound proxy disabled unless explicitly enabled", () => {
+    expect(isProxyEgressEnabled(undefined)).toBe(false);
+    expect(isProxyEgressEnabled("false")).toBe(false);
+    expect(isProxyEgressEnabled("TRUE")).toBe(false);
+    expect(isProxyEgressEnabled("true")).toBe(true);
   });
 });
