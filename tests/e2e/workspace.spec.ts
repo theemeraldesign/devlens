@@ -1,5 +1,58 @@
 import { expect, test } from "@playwright/test";
 
+test("shows the public landing page before authentication", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Make every API make sense/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start building/ })).toBeVisible();
+  await expect(page.locator(".landing-footer")).toBeVisible();
+  await expect(page.locator(".sidebar")).toHaveCount(0);
+  await expect(page.locator(".mobile-nav")).toHaveCount(0);
+  await expect(page.locator(".landing-copy")).toHaveCSS("animation-name", "landing-rise");
+});
+
+test("direct workspace routes return signed-out visitors to the landing page", async ({ page }) => {
+  await page.goto("/collections");
+  await expect(page.getByRole("heading", { name: /Make every API make sense/ })).toBeVisible();
+  await expect(page.locator(".app")).toHaveCount(0);
+  await expect(page.locator(".mobile-nav")).toHaveCount(0);
+});
+
+test("account entry opens the sign-in and registration dialog", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Create your DevLens account");
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  await expect(page.getByLabel("Password")).toBeVisible();
+  await page.getByRole("button", { name: /Already have an account/ }).click();
+  await expect(page.getByRole("dialog")).toContainText("Welcome back");
+});
+
+test("password recovery is available from sign in", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("button", { name: "Forgot your password?" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Reset your password");
+  await expect(page.getByRole("button", { name: "Send reset link" })).toBeVisible();
+});
+
+test("landing motion respects reduced-motion preferences", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Make every API make sense/ })).toBeVisible();
+  const duration = await page.locator(".landing-copy").evaluate(el => getComputedStyle(el).animationDuration);
+  expect(parseFloat(duration)).toBeLessThan(0.001);
+});
+
+test.describe("authenticated workspace", () => {
+  test.skip(!process.env.DEVLENS_E2E_EMAIL || !process.env.DEVLENS_E2E_PASSWORD, "Set DEVLENS_E2E_EMAIL and DEVLENS_E2E_PASSWORD to run account-backed workspace tests.");
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByLabel("Email address").fill(process.env.DEVLENS_E2E_EMAIL || "");
+    await page.getByLabel("Password").fill(process.env.DEVLENS_E2E_PASSWORD || "");
+    await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
+    await expect(page.locator(".app")).toBeVisible();
+  });
 test("opens the request studio and creates a local collection", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Request studio." })).toBeVisible();
@@ -131,4 +184,6 @@ test("uses separate responsive screens and a visible brand on Android", async ({
   await expect(page.getByRole("button", { name: "JSON formatter" })).toBeVisible();
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, page: document.documentElement.scrollWidth }));
   expect(widths.page).toBeLessThanOrEqual(widths.viewport);
+});
+
 });
