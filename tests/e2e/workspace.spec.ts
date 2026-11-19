@@ -24,3 +24,15 @@ test("opens the JSON formatter utility", async ({ page }) => {
   await page.getByRole("button", { name: /run utility/i }).click();
   await expect(page.locator(".utility-output")).toContainText('"ok": true');
 });
+
+test("creates a private environment from mobile navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Environments" }).click();
+  await page.getByRole("button", { name: /new environment/i }).click();
+  await page.getByPlaceholder("Development").fill("Staging");
+  await page.getByPlaceholder("API_BASE_URL").fill("BASE_URL");
+  await page.getByPlaceholder("Variable value").fill("https://staging.example.test");
+  await page.getByRole("button", { name: "Save environment" }).click();
+  await expect(page.locator(".heading-meta")).toContainText("Staging");
+});
