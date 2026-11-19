@@ -273,7 +273,8 @@ export default {
     if (request.method !== "GET" || !contentType.includes("text/html")) return assetResponse;
 
     const page = pageMetadata(url.pathname);
-    const canonicalUrl = url.origin + (url.pathname === "/" ? "/" : url.pathname.replace(/\\/$/, ""));
+    const canonicalPath = url.pathname.length > 1 && url.pathname.endsWith("/") ? url.pathname.slice(0, -1) : url.pathname;
+    const canonicalUrl = url.origin + canonicalPath;
     let html = await assetResponse.text();
     const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const setMeta = (kind: "name" | "property", key: string, value: string) => {
@@ -281,14 +282,14 @@ export default {
       const pattern = new RegExp(`<meta\\s+${kind}=["']${key}["']\\s+content=["'][^"']*["']\\s*/?>`, "i");
       html = html.replace(pattern, `<meta ${kind}="${key}" content="${escaped}" />`);
     };
-    html = html.replace(/<title>[^<]*<\\/title>/i, `<title>${escapeAttribute(page.title)}</title>`);
+    html = html.replace(new RegExp("<title>[^<]*</title>", "i"), `<title>${escapeAttribute(page.title)}</title>`);
     setMeta("name", "description", page.description);
     setMeta("property", "og:title", page.title);
     setMeta("property", "og:description", page.description);
     setMeta("property", "og:url", canonicalUrl);
     setMeta("name", "twitter:title", page.title);
     setMeta("name", "twitter:description", page.description);
-    html = html.replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["']\\s*\\/>/i, `<link rel="canonical" href="${escapeAttribute(canonicalUrl)}" />`);
+    html = html.replace(/<link rel="canonical"[^>]*>/i, `<link rel="canonical" href="${escapeAttribute(canonicalUrl)}" />`);
 
     const headers = new Headers(assetResponse.headers);
     headers.set("content-type", "text/html; charset=utf-8");
