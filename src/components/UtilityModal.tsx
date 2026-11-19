@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import { Copy, Play, X } from "lucide-react";
-import { createUuid, decodeUrl, encodeUrl, exportCurl, fromBase64, inspectJwt, prettyJson, toBase64 } from "../lib/utilities";
+import { createUuid, decodeUrl, encodeUrl, exportCurl, fromBase64, importCurl, inspectJwt, prettyJson, toBase64 } from "../lib/utilities";
 
-type Props = { tool: string; onClose: () => void };
+type Props = { tool: string; onClose: () => void; onImportRequest?: (request: ReturnType<typeof importCurl>) => void };
 
 function jsonDiff(before: unknown, after: unknown, path = "$"): Array<{ path: string; before: unknown; after: unknown }> {
   if (JSON.stringify(before) === JSON.stringify(after)) return [];
@@ -15,7 +15,7 @@ function jsonDiff(before: unknown, after: unknown, path = "$"): Array<{ path: st
   return [{ path, before: before ?? null, after: after ?? null }];
 }
 
-export default function UtilityModal({ tool, onClose }: Props) {
+export default function UtilityModal({ tool, onClose, onImportRequest }: Props) {
   const dialogRef = useModalAccessibility(onClose);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
@@ -38,29 +38,19 @@ export default function UtilityModal({ tool, onClose }: Props) {
         case "JWT inspector":
           result = JSON.stringify({ ...inspectJwt(input), warning: "Decoded only. This does not verify the JWT signature." }, null, 2);
           break;
-        case "Base64 encode":
-          result = toBase64(input);
-          break;
-        case "Base64 decode":
-          result = fromBase64(input);
-          break;
-        case "URL encode":
-          result = encodeUrl(input);
-          break;
-        case "URL decode":
-          result = decodeUrl(input);
-          break;
-        case "UUID generator":
-          result = createUuid();
-          break;
+        case "Base64 encode": result = toBase64(input); break;
+        case "Base64 decode": result = fromBase64(input); break;
+        case "URL encode": result = encodeUrl(input); break;
+        case "URL decode": result = decodeUrl(input); break;
+        case "UUID generator": result = createUuid(); break;
+        case "cURL importer": result = JSON.stringify(importCurl(input), null, 2); break;
         case "cURL exporter": {
           const request = JSON.parse(input) as { method: string; url: string; headers?: Record<string, string>; body?: string };
           if (!request.method || !request.url) throw new Error("Provide JSON with method and url fields.");
           result = exportCurl({ method: request.method, url: request.url, headers: request.headers || {}, body: request.body });
           break;
         }
-        default:
-          throw new Error("This utility is not available yet.");
+        default: throw new Error("This utility is not available yet.");
       }
       setOutput(result);
     } catch (reason) {
@@ -72,10 +62,10 @@ export default function UtilityModal({ tool, onClose }: Props) {
   return <div className="modal-backdrop" onClick={onClose}>
     <section ref={dialogRef} className="modal utility-modal" role="dialog" aria-modal="true" aria-labelledby="utility-title" onClick={event => event.stopPropagation()}>
       <div className="modal-title"><div><span className="utility-kicker">DEVLENS UTILITIES</span><b id="utility-title">{tool}</b></div><button onClick={onClose} aria-label="Close utility"><X size={16}/></button></div>
-      <p>{tool === "JSON diff" ? "Compare two JSON documents. Separate them with a line containing ---." : tool === "JWT inspector" ? "Inspect the header and payload. Signature verification is not performed." : tool === "cURL exporter" ? "Paste a request object as JSON to generate a cURL command." : "Process text locally in your browser. Input is not sent to the server."}</p>
-      {tool !== "UUID generator" && <><label className="sr-only" htmlFor="utility-input">Utility input</label><textarea id="utility-input" className="utility-input" value={input} onChange={event => setInput(event.target.value)} spellCheck={false} placeholder={tool === "JSON diff" ? '{"name":"before"}\n---\n{"name":"after"}' : tool === "cURL exporter" ? '{"method":"POST","url":"https://api.example.com/items","headers":{"content-type":"application/json"},"body":"{}"}' : "Paste your input here..."}/></>}
+      <p>{tool === "JSON diff" ? "Compare two JSON documents. Separate them with a line containing ---." : tool === "JWT inspector" ? "Inspect the header and payload. Signature verification is not performed." : tool === "cURL exporter" ? "Paste a request object as JSON to generate a cURL command." : tool === "cURL importer" ? "Paste a cURL command. DevLens parses it locally and never executes shell content." : "Process text locally in your browser. Input is not sent to the server."}</p>
+      {tool !== "UUID generator" && <><label className="sr-only" htmlFor="utility-input">Utility input</label><textarea id="utility-input" className="utility-input" value={input} onChange={event => setInput(event.target.value)} spellCheck={false} placeholder={tool === "JSON diff" ? '{"name":"before"}\n---\n{"name":"after"}' : tool === "cURL exporter" ? '{"method":"POST","url":"https://api.example.com/items","headers":{"content-type":"application/json"},"body":"{}"}' : tool === "cURL importer" ? "curl -X POST https://api.example.com/items -H 'Content-Type: application/json' -d '{}'" : "Paste your input here..."}/></>}
       {error && <div className="auth-message utility-error" role="alert">{error}</div>}
-      <div className="utility-actions"><button className="send-button" onClick={run}><Play size={13}/> Run utility</button>{output && <button className="utility-copy" onClick={() => navigator.clipboard.writeText(output)}><Copy size={13}/> Copy output</button>}</div>
+      <div className="utility-actions"><button className="send-button" onClick={run}><Play size={13}/> Run utility</button>{output && <button className="utility-copy" onClick={() => navigator.clipboard.writeText(output)}><Copy size={13}/> Copy output</button>}{output && tool === "cURL importer" && <button className="utility-copy" onClick={() => { onImportRequest?.(JSON.parse(output)); onClose(); }}>Load into request editor</button>}</div>
       {output && <pre className="utility-output">{output}</pre>}
     </section>
   </div>;
