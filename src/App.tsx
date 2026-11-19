@@ -411,6 +411,16 @@ export default function App() {
     setAccountNotice("");
   }
 
+  function loadImportedCurl(imported: { method: string; url: string; headers: Record<string, string>; body: string }) {
+    const headers = Object.entries(imported.headers).map(([key, value]) => ({ id: uid(), key, value, enabled: true }));
+    const contentType = imported.headers["content-type"] || imported.headers["Content-Type"] || "";
+    const bodyType = contentType.includes("x-www-form-urlencoded") ? "urlencoded" : contentType.includes("text/") ? "text" : "json";
+    setRequest({ method: imported.method as HttpMethod, url: imported.url, headers, body: imported.body, bodyType });
+    setParams([{ id: uid(), key: "", value: "", enabled: true }]);
+    setAuthType("No authentication"); setAuthToken(""); setBasicUsername(""); setBasicPassword(""); setApiKeyValue("");
+    setResponse(null); setError(""); setActiveNav("Collections");
+  }
+
   function cancelRequest() {
     abortController?.abort();
   }
@@ -473,7 +483,7 @@ export default function App() {
       <div className="side-label">DEVELOPER TOOLS</div>
       <nav className="side-nav">
         <button className={showTools ? "active" : ""} onClick={() => setShowTools(v=>!v)}><Braces size={17}/>Utilities<ChevronDown size={14} className="nav-chevron"/></button>
-        {showTools && <div className="tool-subnav">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL exporter"].map(tool=><button key={tool} onClick={()=>setActiveUtility(tool)}>{tool}</button>)}</div>}
+        {showTools && <div className="tool-subnav">{["JSON formatter","JSON diff","JWT inspector","Base64 encode","Base64 decode","URL encode","URL decode","UUID generator","cURL importer","cURL exporter"].map(tool=><button key={tool} onClick={()=>setActiveUtility(tool)}>{tool}</button>)}</div>}
       </nav>
       <div className="sidebar-bottom">
         <div className="secure-note"><ShieldCheck size={16}/><span><b>Private by design</b><small>Secrets stay in your workspace.</small></span></div>
@@ -525,8 +535,8 @@ export default function App() {
       <button className={mobilePanel==="utilities"?"active":""} onClick={()=>{setActiveNav("Utilities");setMobilePanel(mobilePanel==="utilities"?null:"utilities");}}><Braces size={18}/><span>Tools</span></button>
     </nav>
     {showEnvironmentModal && <EnvironmentModal initial={editingEnvironment} onClose={() => setShowEnvironmentModal(false)} onSave={saveEnvironment} onDelete={deleteEnvironment} />}
-    {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} />}
-    {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && !hasImportedGuestData(user.id)) setShowImportPrompt(true); }} />}
+    {activeUtility && <UtilityModal tool={activeUtility} onClose={() => setActiveUtility(null)} onImportRequest={loadImportedCurl} />}
+    {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthenticated={user => { setAccountEmail(user.email ?? null); setAccountId(user.id); if ((collections.some(item => !item.cloudOwnerId) || environments.some(item => !item.cloudOwnerId)) && hasUnimportedGuestData(user.id, collections, environments)) setShowImportPrompt(true); }} />}
     {showNew && <CollectionModal value={collectionName} onChange={setCollectionName} onClose={()=>setShowNew(false)} onCreate={createCollection} />}
   </div>;
 }
