@@ -779,3 +779,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .preview-window,.landing-grid article,.landing-security,.landing-footer,.landing-float,.preview-stack,
 .shared-topbar,.shared-request,.shared-import{border-radius:4px}
 .shared-back,.shared-brand-mark{border-radius:3px}
+
+
+/* Crisp geometry across feature cards, panels, controls and modal surfaces. */
+:where(.app,.landing-page,.shared-page) :where(
+  button:not(.profile-avatar),input,select,textarea,
+  [class*="card"],[class*="panel"],[class*="modal"],[class*="button"],
+  [class*="feature-art"],[class*="preview-window"],[class*="float"],
+  [class*="request"],[class*="security"],[class*="import"]
+){border-radius:3px}
+:where(.app,.landing-page,.shared-page) a[href],
+:where(.app,.landing-page,.shared-page) button:not(:disabled),
+:where(.app,.landing-page,.shared-page) [role="button"]:not([aria-disabled="true"]),
+:where(.app,.landing-page,.shared-page) [role="tab"]:not([aria-disabled="true"]){cursor:pointer}
