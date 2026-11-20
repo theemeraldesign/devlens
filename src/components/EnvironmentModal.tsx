@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
-import { Plus, Trash2, X } from "lucide-react";
+import { HiOutlinePlus as Plus, HiOutlineTrash as Trash2, HiOutlineXMark as X } from "react-icons/hi2";
 import type { EnvironmentVariable, LocalEnvironment } from "../lib/environments";
 
 type Props = {
