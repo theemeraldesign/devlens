@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Braces, Check, ChevronRight, Copy, Globe2, LockKeyhole, Play, Sparkles } from "lucide-react";
+import { HiOutlineChartBar as Activity, HiOutlineCodeBracket as Braces, HiOutlineCheck as Check, HiOutlineChevronRight as ChevronRight, HiOutlineDocumentDuplicate as Copy, HiOutlineGlobeAlt as Globe2, HiOutlineLockClosed as LockKeyhole, HiOutlinePlay as Play, HiOutlineSparkles as Sparkles } from "react-icons/hi2";
 
 const panels = {
   request: { label: "Request", method: "POST", path: "/v1/customers", status: "Ready to send", code: ['{','  "name": "Ada Lovelace",','  "email": "ada@example.dev",','  "plan": "pro"','}'] },
