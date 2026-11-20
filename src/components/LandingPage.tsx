@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Activity, ArrowRight, ArrowUpRight, Braces, Check, Code2, Github, Globe2, Layers3, LockKeyhole, ShieldCheck, Terminal, Zap } from "lucide-react";
+import { HiOutlineChartBar as Activity, HiOutlineArrowRight as ArrowRight, HiOutlineArrowUpRight as ArrowUpRight, HiOutlineCodeBracket as Braces, HiOutlineCheck as Check, HiOutlineCodeBracket as Code2, HiOutlineGlobeAlt as Globe2, HiOutlineRectangleStack as Layers3, HiOutlineLockClosed as LockKeyhole, HiOutlineShieldCheck as ShieldCheck, HiOutlineCommandLine as Terminal, HiOutlineBolt as Zap } from "react-icons/hi2";
+import { FaGithub as Github } from "react-icons/fa6";
 
 type Props = { onGetStarted: () => void; onSignIn: () => void };
 
