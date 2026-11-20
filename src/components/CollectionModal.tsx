@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { HiOutlineXMark as X } from "react-icons/hi2";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
 
 type Props = {
