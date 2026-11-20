@@ -747,7 +747,7 @@ export default function App() {
 
     <main className="main" id="request-workspace" tabIndex={-1}>
       <header className="topbar">
-        <button className="top-brand" onClick={()=>navigateTo("workspace")} aria-label="DevLens home"><span className="top-brand-mark"><Activity size={17}/></span><span>dev<span>lens</span></span></button>
+        <button className="top-brand" onClick={()=>navigateTo("workspace")} aria-label="DevLens home"><span className="top-brand-mark"><Activity size={17} strokeWidth={2.4}/></span><span>dev<span>lens</span></span></button>
         <div className="breadcrumbs"><ChevronRight size={13}/><b>{pageTitles[currentPage]}</b></div>
         <div className="top-actions"><span className="connection"><i/> Workspace ready</span>
           <button className="icon-button" title="Toggle theme" onClick={()=>setDark(v=>!v)}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button>
