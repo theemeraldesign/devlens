@@ -697,3 +697,57 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
  .showcase-code{font-size:9px;padding:10px 8px}.showcase-code i{width:22px}
  .select-options{min-width:150px}
 }
+
+
+/* Fixed liquid-glass navigation across the landing page and workspace routes. */
+.landing-header{
+  position:fixed!important;
+  inset:0 0 auto;
+  z-index:40;
+  width:100%;
+  max-width:none!important;
+  height:76px;
+  margin:0;
+  padding-left:max(clamp(22px,5vw,72px),calc((100vw - 1176px)/2));
+  padding-right:max(clamp(22px,5vw,72px),calc((100vw - 1176px)/2));
+  background:linear-gradient(180deg,rgba(17,21,28,.78),rgba(17,21,28,.54));
+  border-bottom:1px solid rgba(255,255,255,.11);
+  -webkit-backdrop-filter:blur(22px) saturate(155%);
+  backdrop-filter:blur(22px) saturate(155%);
+  box-shadow:0 8px 30px rgba(0,0,0,.12),inset 0 1px rgba(255,255,255,.055);
+  transition:background .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.landing-header:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(105deg,rgba(255,255,255,.055),transparent 34%,rgba(229,163,108,.035) 72%,transparent);
+}
+.landing-header>*{position:relative;z-index:1}
+.landing-page{padding-top:0}
+.landing-hero{padding-top:calc(105px + 28px)}
+.topbar{
+  position:sticky!important;
+  top:0;
+  z-index:30;
+  isolation:isolate;
+  background:rgba(16,20,27,.66);
+  border-bottom:1px solid rgba(255,255,255,.105);
+  -webkit-backdrop-filter:blur(20px) saturate(150%);
+  backdrop-filter:blur(20px) saturate(150%);
+  box-shadow:0 8px 26px rgba(0,0,0,.09),inset 0 1px rgba(255,255,255,.035);
+  margin-bottom:0;
+}
+.app.light .topbar{
+  background:rgba(248,250,253,.72);
+  border-bottom-color:rgba(30,43,60,.10);
+  box-shadow:0 8px 26px rgba(30,43,60,.055),inset 0 1px rgba(255,255,255,.72);
+}
+@media(max-width:700px){
+  .landing-header{height:65px;padding-left:18px;padding-right:18px}
+  .landing-hero{padding-top:calc(66px + 65px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .landing-header,.topbar{transition:none}
+}
