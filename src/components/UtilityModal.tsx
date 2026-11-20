@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
-import { Copy, Play, X } from "lucide-react";
+import { HiOutlineDocumentDuplicate as Copy, HiOutlinePlay as Play, HiOutlineXMark as X } from "react-icons/hi2";
 import { createUuid, decodeUrl, diffJson, encodeUrl, exportCurl, fromBase64, importCurl, inspectJwt, prettyJson, prettyXml, toBase64 } from "../lib/utilities";
 
 type Props = { tool: string; onClose: () => void; onImportRequest?: (request: ReturnType<typeof importCurl>) => void };
