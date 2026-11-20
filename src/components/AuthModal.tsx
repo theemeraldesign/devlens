@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import type { User } from "@supabase/supabase-js";
-import { X, ArrowLeft } from "lucide-react";
+import { HiOutlineXMark as X, HiOutlineArrowLeft as ArrowLeft } from "react-icons/hi2";
 import { supabase } from "../lib/supabase";
 
 type Mode = "signin" | "signup" | "verify" | "recovery" | "update";
