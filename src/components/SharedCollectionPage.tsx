@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, Globe2, LoaderCircle } from "lucide-react";
+import { HiOutlineArrowLeft as ArrowLeft, HiOutlineArrowDownTray as Download, HiOutlineGlobeAlt as Globe2, HiOutlineArrowPath as LoaderCircle } from "react-icons/hi2";
 import { supabase } from "../lib/supabase";
 
 type PublicRequest = {
