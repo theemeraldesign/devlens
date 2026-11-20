@@ -751,3 +751,31 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(prefers-reduced-motion:reduce){
   .landing-header,.topbar{transition:none}
 }
+
+
+/* Interaction affordances and crisp geometry. */
+:where(button,a,[role="button"],[role="link"],[role="tab"],[role="menuitem"],summary,label[for],select,input[type="checkbox"],input[type="radio"],.clickable,.side-nav>button,.tool-subnav button,.mobile-nav button,.mobile-panel button,.select-trigger,.select-option,.icon-button,.row-icon,.profile-row,.workspace-switch,.landing-grid article[role="button"]):not(:disabled){cursor:pointer}
+:where(button,a,[role="button"],[role="link"],[role="tab"],[role="menuitem"],summary,.clickable,.side-nav>button,.tool-subnav button,.mobile-nav button,.mobile-panel button,.select-trigger,.select-option,.icon-button,.row-icon,.profile-row,.workspace-switch):hover{cursor:pointer}
+:disabled,[aria-disabled="true"]{cursor:not-allowed!important}
+/* DevLens uses crisp, restrained corners rather than pill-like UI. */
+:root{--dl-radius-xs:2px;--dl-radius-sm:3px;--dl-radius-md:4px;--dl-radius-lg:5px}
+.app .brand-mark,.app .workspace-avatar,.app .request-icon,.app .response-icon,.app .empty-center,
+.app .beta,.app .unsaved,.app .nav-count,.app .heading-meta kbd,
+.app .workspace-switch,.app .secure-note,.app .request-card,.app .response-card,
+.app .url-row select,.app .url-input,.app .key-value-row input:not([type=checkbox]),
+.app .body-editor,.app .auth-panel select,.app .error-banner,.app .modal,
+.app .modal>input,.app .auth-message,.app .import-banner,.app .import-banner>button,
+.app .utility-modal,.app .utility-input,.app .utility-output,.app .utility-copy,
+.app .download-response,.app .account-button,.app .upgrade-button,
+.app .side-nav>button,.app .tool-subnav button,.app .icon-button,.app .row-icon,
+.app .select-trigger,.app .select-options,.app .select-option,
+.app .mobile-nav button,.app .mobile-panel,.app .mobile-panel button{
+  border-radius:var(--dl-radius-sm)
+}
+.app .profile-avatar{border-radius:50%}
+.app .side-nav>button.active{border-radius:var(--dl-radius-xs)}
+.app .landing-header-cta,.app .landing-primary,.app .screen-primary,.app .landing-header-cta:hover{border-radius:3px}
+.landing-brand>span{border-radius:4px}
+.preview-window,.landing-grid article,.landing-security,.landing-footer,.landing-float,.preview-stack,
+.shared-topbar,.shared-request,.shared-import{border-radius:4px}
+.shared-back,.shared-brand-mark{border-radius:3px}
