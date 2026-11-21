@@ -122,7 +122,6 @@ export default function App() {
     });
     const local = readGuestCollections();
     const cloudIds = new Set(cloud.map(item => item.id));
-    const merged = [...cloud, ...local.filter(item => !cloudIds.has(item.id))];
     try {
       const { data: publicationStatus, error: publicationError } = await invokePublishAction("", "list");
       if (!publicationError && Array.isArray(publicationStatus?.publishedCollections)) {
@@ -135,10 +134,20 @@ export default function App() {
       }
     } catch { /* Publication status must not block workspace loading. */ }
     if (syncVersion !== collectionSyncVersion.current) return;
-    setCollections(merged);
-    if (!activeCollectionId && merged.length) {
-      setActiveCollectionId(merged[0].id);
-      setCollectionName(merged[0].name);
+    // Merge against the latest state, not the state captured when auth first fired.
+    // A collection created while this cloud read was in flight must not disappear.
+    setCollections(current => {
+      const retained = [...current, ...local].filter(item => !cloudIds.has(item.id));
+      const seen = new Set<string>();
+      return [...cloud, ...retained].filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+    });
+    setActiveCollectionId(current => current || cloud[0]?.id || local[0]?.id || null);
+    if (!activeCollectionId && (cloud[0] || local[0])) {
+      setCollectionName(cloud[0]?.name || local[0]?.name || "My workspace");
     }
   }
 
