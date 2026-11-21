@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: devlens-ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: devlens-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   verify:
