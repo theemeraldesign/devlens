@@ -883,3 +883,117 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
     transition-duration:.01ms!important;
   }
 }
+
+
+/* DevLens design-system application layer. Keep this block last so every
+   workspace route and modal follows DESIGN.md instead of legacy overrides. */
+:root {
+  --dl-radius-xs: 4px;
+  --dl-radius-sm: 8px;
+  --dl-radius-md: 16px;
+  --dl-radius-lg: 24px;
+  --dl-shadow-card: 0 1px 2px rgba(5, 8, 13, .16), 0 10px 28px rgba(5, 8, 13, .12);
+  --dl-shadow-popover: 0 18px 48px rgba(5, 8, 13, .28);
+  --dl-focus: 0 0 0 3px rgba(229, 162, 103, .22);
+}
+.app {
+  --panel: #171d26;
+  --panel2: #1b222d;
+  --line: #29313d;
+  --muted: #8994a4;
+  --text: #e7ebf2;
+  --accent: #e5a267;
+  --green: #79d4a6;
+  --danger: #ff8585;
+  --input: #111720;
+}
+.app.light {
+  --panel: #fff;
+  --panel2: #f7f9fc;
+  --line: #e4e8ef;
+  --muted: #5f6d7f;
+  --text: #1b2533;
+  --accent: #9a5528;
+  --green: #11704f;
+  --danger: #b42318;
+  --input: #eef2f6;
+}
+.app :is(.workspace-switch,.secure-note,.request-card,.response-card,.url-row select,
+.url-input,.key-value-row input:not([type=checkbox]),.body-editor,.auth-panel select,
+.error-banner,.modal,.modal>input,.auth-message,.import-banner,.utility-modal,
+.utility-input,.utility-output,.utility-copy,.download-response,.account-button,
+.upgrade-button,.select-trigger,.select-options,.select-option,.mobile-panel,
+.mobile-panel button,.screen-card,.tool-card,.feedback-dialog) {
+  border-radius: var(--dl-radius-sm);
+}
+.app :is(.request-card,.response-card,.screen-card,.tool-card,.utility-modal) {
+  box-shadow: var(--dl-shadow-card);
+}
+.app :is(input,textarea,select,button,a,[tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--dl-focus);
+}
+.app :is(.request-card-top,.response-head) {
+  min-height: 60px;
+}
+.app :is(.side-nav>button,.tool-subnav button,.mobile-nav button,.mobile-panel button) {
+  min-height: 40px;
+  border-radius: 8px;
+  transition: background-color .16s ease, color .16s ease, border-color .16s ease;
+}
+.app :is(.url-row,.request-card,.response-card,.screen-card,.tool-card) {
+  border-color: var(--line);
+}
+.app :is(.url-input,.key-value-row input:not([type=checkbox]),.body-editor,.utility-input,.utility-output) {
+  background: var(--input);
+  border-color: var(--line);
+}
+.app :is(button,.icon-button,.row-icon,.select-trigger,.select-option) {
+  transition: background-color .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+}
+.app :is(button,a):focus-visible { border-radius: 8px; }
+.app .brand-mark { border-radius: 9px; }
+.app .request-icon,.app .response-icon { border-radius: 10px; }
+.app .side-nav>button.active {
+  background: #33271d;
+  color: #e5a267;
+}
+.app.light .side-nav>button.active {
+  background: #f8eee4;
+  color: #9a5528;
+}
+.app .request-card,.app .response-card { overflow: clip; }
+.app .request-card-top,.app .response-head { border-color: var(--line); }
+.app .screen-card { background: var(--panel); border: 1px solid var(--line); }
+.app .tool-card { background: var(--panel); border: 1px solid var(--line); }
+.app .modal,.app .utility-modal,.app .feedback-dialog {
+  box-shadow: var(--dl-shadow-popover);
+}
+.app .secure-note {
+  background: color-mix(in srgb, var(--green) 9%, var(--panel));
+  border-color: color-mix(in srgb, var(--green) 24%, var(--line));
+}
+.app .secure-note small { color: var(--muted); }
+.app :is(.landing-primary,.landing-header-cta,.showcase-request-line button) {
+  background: var(--accent);
+  color: #17120e;
+  border-radius: 999px;
+}
+.app.light :is(.landing-primary,.landing-header-cta,.showcase-request-line button) { color: #fff; }
+.app .landing-grid article,.app .landing-security,.app .preview-window {
+  border-radius: 16px;
+}
+.app .landing-header { border-radius: 0; }
+.app .topbar { border-radius: 0; }
+@media (max-width: 767px) {
+  .app .main { padding-left: 16px; padding-right: 16px; }
+  .app .request-card,.app .response-card,.app .screen-card,.app .tool-card { border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app *, .app *::before, .app *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
