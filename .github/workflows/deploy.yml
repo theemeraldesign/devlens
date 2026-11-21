@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: devlens-release-${{ github.ref }}
-  cancel-in-progress: false
+  group: devlens-production-v2
+  cancel-in-progress: true
 
 jobs:
   deploy:
